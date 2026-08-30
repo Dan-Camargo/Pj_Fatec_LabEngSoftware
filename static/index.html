@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AlgoViz — Visualizador de Algoritmos</title>
+<link rel="stylesheet" href="/static/style.css?v=2004">
+</head>
+<body>
+<header>
+  <div class="brand"><h1>:: Algo<span>Viz</span> ::</h1></div>
+  <nav id="tabs">
+    <button data-tab="sorting" class="active">Ordenação</button>
+    <button data-tab="race">Corrida</button>
+    <button data-tab="search">Busca Binária</button>
+    <button data-tab="path">Grafos · Caminhos</button>
+    <button data-tab="chart">Complexidade</button>
+    <button data-tab="history">Histórico <small>(Postgres)</small></button>
+  </nav>
+  <div id="auth-box" class="auth-box"></div>
+</header>
+
+<div id="toast" class="toast hidden"></div>
+
+<main>
+
+<!-- ============================ ORDENAÇÃO ============================ -->
+<section id="tab-sorting" class="tab active">
+  <aside class="panel controls">
+    <h2>Controles</h2>
+    <label>Algoritmo
+      <select id="sort-algo"></select>
+    </label>
+    <div id="algo-info" class="info-card"></div>
+    <label>Tamanho <output id="size-out">40</output>
+      <input type="range" id="size" min="5" max="200" value="40">
+    </label>
+    <label>Velocidade <output id="speed-out">50</output>
+      <input type="range" id="speed" min="1" max="100" value="50">
+    </label>
+    <div class="btn-row">
+      <button id="btn-shuffle" class="ghost">Embaralhar</button>
+      <button id="btn-play" class="primary">Ordenar ▶</button>
+      <button id="btn-pause" class="ghost hidden">Pausar ⏸</button>
+      <button id="btn-step" class="ghost">Passo</button>
+      <button id="btn-reset" class="ghost">Reiniciar</button>
+    </div>
+    <details>
+      <summary>Vetor personalizado</summary>
+      <input type="text" id="custom-array" placeholder="ex.: 42,7,13,99,3">
+      <button id="btn-apply-custom" class="ghost small">Aplicar vetor</button>
+    </details>
+    <hr>
+    <h3>Conjuntos salvos <small>(BD)</small></h3>
+    <div class="btn-row">
+      <input type="text" id="ds-name" placeholder="nome do conjunto" maxlength="80">
+      <button id="btn-ds-save" class="ghost small">Salvar atual</button>
+    </div>
+    <ul id="ds-list" class="ds-list"></ul>
+  </aside>
+
+  <div class="stage">
+    <div class="stats-row">
+      <span class="stat">Comparações <b id="st-cmp">–</b></span>
+      <span class="stat">Trocas/Escritas <b id="st-swp">–</b></span>
+      <span class="stat">Tempo servidor <b id="st-ms">–</b></span>
+      <span class="stat">Operações <b id="st-ops">–</b></span>
+    </div>
+    <div id="bars"></div>
+    <div class="legend">
+      <span><i class="c-def"></i>padrão</span>
+      <span><i class="c-cmp"></i>comparando</span>
+      <span><i class="c-swp"></i>trocando</span>
+      <span><i class="c-wrt"></i>escrevendo</span>
+      <span><i class="c-piv"></i>pivô</span>
+      <span><i class="c-done"></i>ordenado</span>
+    </div>
+  </div>
+</section>
+
+<!-- =============================== CORRIDA =========================== -->
+<section id="tab-race" class="tab">
+  <aside class="panel controls">
+    <h2>Corrida de algoritmos</h2>
+    <label>Competidor A
+      <select id="race-algo-a"></select>
+    </label>
+    <label>Competidor B
+      <select id="race-algo-b"></select>
+    </label>
+    <label>Tamanho do vetor <output id="rsize-out">50</output>
+      <input type="range" id="race-size" min="10" max="200" value="50">
+    </label>
+    <label>Velocidade <output id="rspeed-out">50</output>
+      <input type="range" id="race-speed" min="1" max="100" value="50">
+    </label>
+    <div class="btn-row">
+      <button id="btn-race-run" class="primary">Largada! 🏁</button>
+      <button id="btn-race-pause" class="ghost hidden">Pausar ⏸</button>
+      <button id="btn-race-new" class="ghost">Novo vetor</button>
+    </div>
+    <div id="race-verdict" class="info-card hidden"></div>
+    <p class="hint">Mesmo vetor embaralhado para os dois, mesmo ritmo de animação: vence quem precisar de menos operações para ordenar.</p>
+  </aside>
+  <div class="stage race-stage">
+    <div class="lane" id="lane-a">
+      <h3 class="lane-title">—</h3>
+      <div class="bars-mini"></div>
+      <div class="lane-stats">Comparações <b class="lc">0</b> · Trocas <b class="ls">0</b> · Progresso <b class="lp">0%</b></div>
+    </div>
+    <div class="lane" id="lane-b">
+      <h3 class="lane-title">—</h3>
+      <div class="bars-mini"></div>
+      <div class="lane-stats">Comparações <b class="lc">0</b> · Trocas <b class="ls">0</b> · Progresso <b class="lp">0%</b></div>
+    </div>
+    <div class="legend">
+      <span><i class="c-def"></i>padrão</span>
+      <span><i class="c-cmp"></i>comparando</span>
+      <span><i class="c-swp"></i>trocando</span>
+      <span><i class="c-done"></i>ordenado</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ BUSCA BINÁRIA ========================= -->
+<section id="tab-search" class="tab">
+  <aside class="panel controls">
+    <h2>Busca Binária</h2>
+    <div id="search-info" class="info-card"></div>
+    <label>Tamanho <output id="ssize-out">31</output>
+      <input type="range" id="search-size" min="5" max="101" step="2" value="31">
+    </label>
+    <label>Alvo <input type="number" id="target" style="width:100%"></label>
+    <div class="btn-row">
+      <button id="btn-search-gen" class="ghost">Gerar ordenado</button>
+      <button id="btn-search-target" class="ghost">Sortear alvo</button>
+      <button id="btn-search-play" class="primary">Buscar ▶</button>
+    </div>
+    <p class="hint">O alvo precisa existir? Não: sorteie um valor presente ou digite qualquer número para ver uma busca mal-sucedida.</p>
+  </aside>
+  <div class="stage">
+    <div class="stats-row">
+      <span class="stat">Comparações <b id="ss-cmp">–</b></span>
+      <span class="stat">Tempo servidor <b id="ss-ms">–</b></span>
+      <span class="stat">Resultado <b id="ss-res">–</b></span>
+    </div>
+    <div id="cells"></div>
+    <div class="legend">
+      <span><i class="c-def"></i>fora do intervalo</span>
+      <span><i class="c-cmp"></i>intervalo ativo</span>
+      <span><i class="c-piv"></i>meio (mid)</span>
+      <span><i class="c-done"></i>encontrado</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== CAMINHOS =========================== -->
+<section id="tab-path" class="tab">
+  <aside class="panel controls">
+    <h2>Grafos · Caminhos</h2>
+    <label>Algoritmo
+      <select id="path-algo">
+        <option value="bfs">BFS — Busca em Largura</option>
+        <option value="dfs">DFS — Busca em Profundidade</option>
+        <option value="astar">A* (heurística Manhattan)</option>
+      </select>
+    </label>
+    <div id="path-info" class="info-card"></div>
+    <div class="btn-row two">
+      <label>Linhas <input type="number" id="grid-rows" min="6" max="26" value="16"></label>
+      <label>Colunas <input type="number" id="grid-cols" min="8" max="46" value="34"></label>
+    </div>
+    <div class="btn-row">
+      <button id="btn-grid-rebuild" class="ghost">Aplicar tamanho</button>
+      <button id="btn-maze" class="ghost">Labirinto aleatório</button>
+      <button id="btn-clear-walls" class="ghost">Limpar paredes</button>
+      <button id="btn-solve" class="primary">Resolver ▶</button>
+    </div>
+    <p class="hint">🖱️ Clique/arraste para desenhar <b>paredes</b>. Arraste os marcadores <b class="g-start">início</b> e <b class="g-end">destino</b>.</p>
+    <div class="stats-col">
+      <span class="stat">Visitados <b id="ps-vis">–</b></span>
+      <span class="stat">Comprimento do caminho <b id="ps-len">–</b></span>
+      <span class="stat">Tempo servidor <b id="ps-ms">–</b></span>
+    </div>
+  </aside>
+  <div class="stage">
+    <div id="grid-wrap"><div id="grid"></div></div>
+    <div class="legend">
+      <span><i class="g-start"></i>início</span>
+      <span><i class="g-end"></i>destino</span>
+      <span><i class="c-swp"></i>parede</span>
+      <span><i class="g-vis"></i>visitado</span>
+      <span><i class="g-path"></i>caminho</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ COMPLEXIDADE ========================= -->
+<section id="tab-chart" class="tab">
+  <div class="panel wide">
+    <div class="hist-head">
+      <h2>Teoria × Prática — dados reais do banco</h2>
+      <div class="btn-row">
+        <select id="chart-metric">
+          <option value="comparisons">Comparações</option>
+          <option value="swaps">Trocas/Escritas</option>
+          <option value="elapsed_ms">Tempo no servidor (ms)</option>
+        </select>
+        <button id="btn-chart-refresh" class="ghost small">↻ Atualizar</button>
+      </div>
+    </div>
+    <canvas id="chart" width="900" height="430"></canvas>
+    <div id="chart-legend" class="legend"></div>
+    <p class="hint" id="chart-note"></p>
+  </div>
+</section>
+
+<!-- ============================== HISTÓRICO ========================== -->
+<section id="tab-history" class="tab">
+  <div class="panel wide">
+    <div class="hist-head">
+      <h2>Histórico de execuções</h2>
+      <div class="btn-row">
+        <select id="hist-scope" class="hidden">
+          <option value="all">Todos os usuários</option>
+          <option value="mine">Somente minhas</option>
+        </select>
+        <button id="btn-refresh-hist" class="ghost small">↻ Atualizar</button>
+      </div>
+    </div>
+    <div class="cards">
+      <div class="card"><b id="h-total">–</b><span>execuções registradas</span></div>
+      <div class="card"><b id="h-items">–</b><span>elementos processados</span></div>
+      <div class="card"><b id="h-algos">–</b><span>algoritmos diferentes usados</span></div>
+    </div>
+    <h3>Médias por algoritmo</h3>
+    <table id="tbl-stats" class="tbl"></table>
+    <h3>Últimas execuções</h3>
+    <table id="tbl-runs" class="tbl"></table>
+  </div>
+</section>
+
+</main>
+<script src="/static/app.js?v=2004"></script>
+</body>
+</html>

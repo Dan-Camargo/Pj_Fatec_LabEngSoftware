@@ -1,0 +1,32 @@
+name: Deploy AlgoViz para AWS
+
+# Roda a cada push na branch main e também manualmente (aba "Actions").
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH na EC2 (app)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}        # IP/DNS público da EC2 do app
+          username: ${{ secrets.EC2_USER }}    # ex.: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}      # chave privada PEM (collapsed)
+          script: |
+            set -e
+            cd /home/ec2-user/algoviz
+            git fetch origin main
+            git reset --hard origin/main
+            python3 -m venv venv
+            venv/bin/pip install -q --upgrade pip
+            venv/bin/pip install -q -r requirements.txt
+            sudo systemctl restart algoviz
+            sleep 2
+            systemctl is-active algoviz

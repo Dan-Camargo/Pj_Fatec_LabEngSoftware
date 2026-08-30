@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.venv/
+env/
+
+# Segredos — nunca commitar
+.secret_key
+.env
+*.local
+
+# Sistema / runtime
+*.log
+.DS_Store
