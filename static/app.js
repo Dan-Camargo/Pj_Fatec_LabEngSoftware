@@ -565,7 +565,9 @@ const Grid = {
     this.start = [Math.floor(rows / 2), Math.max(1, Math.floor(cols * 0.12))];
     this.end = [Math.floor(rows / 2), Math.min(cols - 2, Math.floor(cols * 0.85))];
     const g = $("#grid");
-    g.style.gridTemplateColumns = `repeat(${cols}, 28px)`;
+    const cell = window.innerWidth <= 600 ? 22 : 28;   // células menores no mobile
+    g.style.setProperty("--cell", cell + "px");
+    g.style.gridTemplateColumns = `repeat(${cols}, ${cell}px)`;
     g.innerHTML = "";
     for (let r = 0; r < rows; r++)
       for (let c = 0; c < cols; c++) {
@@ -612,6 +614,24 @@ const Grid = {
       if (this.walls.has(this.key(r, c)) || (r === this.start[0] && c === this.start[1])) return;
       this.end = [r, c]; this.paintMarkers();
     }
+  },
+
+  // Toque (mobile): espelha o comportamento do mouse para desenhar
+  // paredes e arrastar os marcadores início/destino.
+  onTouchStart(e) {
+    const t = e.changedTouches[0];
+    const n = document.elementFromPoint(t.clientX, t.clientY);
+    if (!n) return;
+    this.onDown({ target: n, preventDefault: () => e.preventDefault() });
+  },
+
+  onTouchMove(e) {
+    if (!this.dragging) return;
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    const n = document.elementFromPoint(t.clientX, t.clientY);
+    if (!n) return;
+    this.onOver({ target: n });
   },
 
   setWall(r, c, on) {
@@ -709,6 +729,10 @@ const gridBox = $("#grid");
 gridBox.addEventListener("mousedown", e => Grid.onDown(e));
 gridBox.addEventListener("mouseover", e => { if (e.buttons & 1) Grid.onOver(e); });
 document.addEventListener("mouseup", () => Grid.dragging = null);
+gridBox.addEventListener("touchstart", e => Grid.onTouchStart(e), { passive: false });
+gridBox.addEventListener("touchmove", e => Grid.onTouchMove(e), { passive: false });
+document.addEventListener("touchend", () => Grid.dragging = null);
+document.addEventListener("touchcancel", () => Grid.dragging = null);
 
 $("#path-algo").addEventListener("change", () => Grid.fillInfo());
 $("#btn-grid-rebuild").addEventListener("click", () => {

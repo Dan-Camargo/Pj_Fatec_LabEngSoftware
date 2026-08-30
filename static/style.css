@@ -220,9 +220,11 @@ button.small { padding: 5px 12px; font-size: 13px; }
   padding: 6px;
   border: 1px solid #999999;
   background: #FBFBFB;
+  --cell: 28px;                  /* tamanho da célula (JS reduz no mobile) */
+  touch-action: none;            /* celular: desenhar sem a página rolar */
 }
 .node {
-  width: 28px; height: 28px;
+  width: var(--cell); height: var(--cell);
   background: #FFFFFF;
   border: 1px solid #DDDDDD;
   cursor: crosshair;
@@ -324,4 +326,54 @@ button.small { padding: 5px 12px; font-size: 13px; }
 @media (max-width: 1000px) {
   .tab.active { grid-template-columns: 1fr; }
   .auth-box { float: none; margin-top: 10px; }
+}
+
+/* ======================== MOBILE (<= 600px) ======================== */
+@media (max-width: 600px) {
+  body { font-size: 14px; }
+
+  header { padding: 8px 10px; }
+  .brand h1 { font-size: 21px; margin-bottom: 6px; }
+  #tabs { gap: 3px; }
+  #tabs button { font-size: 13px; padding: 7px 12px; }
+  #tabs button small { display: none; }
+  .auth-box { width: 100%; flex-wrap: wrap; margin-top: 10px; }
+  .auth-box input { flex: 1 1 46%; min-width: 0; }
+
+  main { padding: 10px 10px 28px; }
+
+  .panel { padding: 10px; }
+  .panel h2 { margin: -10px -10px 12px -10px; padding: 8px 12px; font-size: 15px; }
+
+  .stage { min-height: 320px; padding: 10px; }
+
+  /* barras de ordenação: altura menor e rolagem em vez de espremer */
+  #bars { height: 300px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .bar { min-width: 2px; }
+
+  /* botões com área confortável de toque */
+  main button { min-height: 44px; padding: 8px 14px; }
+  button.small { min-height: 40px; padding: 6px 12px; }
+  input[type=range] { height: 44px; }
+
+  label { font-size: 14px; }
+  /* >=16px evita o zoom automático do iOS ao focar o campo */
+  label input[type=text], label input[type=number], select, #target { font-size: 16px; }
+
+  .legend { gap: 10px; font-size: 12px; }
+  .stats-row { gap: 14px; }
+
+  /* célula da busca binária um pouco menor */
+  .cell { width: 46px; height: 44px; font-size: 13px; }
+
+  /* tabelas do histórico rolam horizontal dentro da própria caixa */
+  .tbl { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+
+  .cards { flex-direction: column; }
+  .card { min-width: 0; }
+
+  #chart { height: 320px; }
+  .bars-mini { height: 150px; }
+  .ds-list { max-height: 200px; }
+  .toast { font-size: 14px; padding: 10px 16px; bottom: 12px; }
 }
