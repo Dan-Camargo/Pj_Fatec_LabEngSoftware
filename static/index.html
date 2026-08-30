@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#000066">
 <title>AlgoViz — Visualizador de Algoritmos</title>
-<link rel="stylesheet" href="/static/style.css?v=2005">
+<link rel="stylesheet" href="/static/style.css?v=2006">
 </head>
 <body>
 <header>
@@ -15,7 +15,6 @@
     <button data-tab="race">Corrida</button>
     <button data-tab="search">Busca Binária</button>
     <button data-tab="path">Grafos · Caminhos</button>
-    <button data-tab="chart">Complexidade</button>
     <button data-tab="history">Histórico <small>(Postgres)</small></button>
   </nav>
   <div id="auth-box" class="auth-box"></div>
@@ -196,26 +195,6 @@
   </div>
 </section>
 
-<!-- ============================ COMPLEXIDADE ========================= -->
-<section id="tab-chart" class="tab">
-  <div class="panel wide">
-    <div class="hist-head">
-      <h2>Teoria × Prática — dados reais do banco</h2>
-      <div class="btn-row">
-        <select id="chart-metric">
-          <option value="comparisons">Comparações</option>
-          <option value="swaps">Trocas/Escritas</option>
-          <option value="elapsed_ms">Tempo no servidor (ms)</option>
-        </select>
-        <button id="btn-chart-refresh" class="ghost small">↻ Atualizar</button>
-      </div>
-    </div>
-    <canvas id="chart" width="900" height="430"></canvas>
-    <div id="chart-legend" class="legend"></div>
-    <p class="hint" id="chart-note"></p>
-  </div>
-</section>
-
 <!-- ============================== HISTÓRICO ========================== -->
 <section id="tab-history" class="tab">
   <div class="panel wide">
@@ -242,6 +221,6 @@
 </section>
 
 </main>
-<script src="/static/app.js?v=2005"></script>
+<script src="/static/app.js?v=2006"></script>
 </body>
 </html>

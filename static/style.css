@@ -64,7 +64,7 @@ header {
 main { max-width: 1450px; margin: 0 auto; padding: 18px 24px 40px; }
 .tab { display: none; }
 .tab.active { display: grid; grid-template-columns: 340px 1fr; gap: 18px; align-items: start; }
-#tab-history.active, #tab-chart.active { grid-template-columns: 1fr; }
+#tab-history.active { grid-template-columns: 1fr; }
 
 .panel {
   background: #FFFFFF;
@@ -292,19 +292,6 @@ button.small { padding: 5px 12px; font-size: 13px; }
 .lane-stats { margin-top: 10px; font-size: 14px; color: #555555; }
 .lane-stats b { color: #CC0000; font-size: 16px; }
 
-/* ------------------------------- gráfico ------------------------------- */
-#chart {
-  width: 100%; height: 540px; display: block;
-  background: #FFFFFF;
-  border: 1px solid #999999;
-  margin-top: 10px;
-}
-.sw-dash {
-  display: inline-block; width: 22px; height: 0;
-  border-top: 3px dashed #666666;
-  margin-right: 6px; vertical-align: 4px;
-}
-
 /* --------------------------------- toast -------------------------------
    O "alert()" chique: caixa amarela com borda biselada. */
 .toast {
@@ -372,7 +359,6 @@ button.small { padding: 5px 12px; font-size: 13px; }
   .cards { flex-direction: column; }
   .card { min-width: 0; }
 
-  #chart { height: 320px; }
   .bars-mini { height: 150px; }
   .ds-list { max-height: 200px; }
   .toast { font-size: 14px; padding: 10px 16px; bottom: 12px; }

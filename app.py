@@ -708,32 +708,6 @@ def api_list_runs():
     return jsonify(out)
 
 
-@app.get("/api/complexity")
-def api_complexity():
-    """Dados reais para o gráfico teoria × prática.
-
-    Agrupa todas as execuções de ordenação em 'baldes' de tamanho (dezenas):
-    ex.: execuções com n=12, 15 e 17 caem no balde 10. Para cada algoritmo e
-    balde calculamos a média de comparações/trocas/tempo medidos no servidor.
-    """
-    with db() as conn, conn.cursor() as cur:
-        cur.execute(
-            "SELECT algorithm,"
-            " (input_size / 10) * 10 AS balde,"
-            " count(*) AS amostras,"
-            " round(avg(comparisons))::float8 AS cmp_medio,"
-            " round(avg(swaps))::float8 AS swp_medio,"
-            " round(avg(elapsed_ms)::numeric, 3)::float8 AS ms_medio"
-            " FROM runs WHERE category = 'sorting'"
-            " GROUP BY algorithm, balde ORDER BY balde"
-        )
-        rows = cur.fetchall()
-    points = [{"algorithm": r[0], "size": int(r[1]), "samples": r[2],
-               "comparisons": r[3], "swaps": r[4], "elapsed_ms": r[5]}
-              for r in rows]
-    return jsonify(points=points)
-
-
 @app.get("/api/stats")
 def api_stats():
     with db() as conn, conn.cursor() as cur:

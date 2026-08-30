@@ -8,7 +8,6 @@
    - Race    : aba Corrida   (dois algoritmos no mesmo vetor)
    - Search  : aba Busca Binária
    - Grid    : aba Grafos/Caminhos (BFS, DFS, A*)
-   - Chart   : aba Complexidade (gráfico canvas: teoria × prática)
    - History : aba Histórico (lê o PostgreSQL)
    - Auth    : login/cadastro no cabeçalho
 
@@ -60,7 +59,6 @@ $$("#tabs button").forEach(btn =>
 
     // Abas que buscam dados sob demanda carregam na primeira abertura
     if (btn.dataset.tab === "history") History.load();
-    if (btn.dataset.tab === "chart") Chart.ensureLoaded();
   })
 );
 
@@ -744,132 +742,6 @@ $("#btn-grid-rebuild").addEventListener("click", () => {
 $("#btn-maze").addEventListener("click", () => { Grid.cleanSolve(); Grid.maze(); });
 $("#btn-clear-walls").addEventListener("click", () => { Grid.cleanSolve(); Grid.clearWalls(); });
 $("#btn-solve").addEventListener("click", () => Grid.solve());
-
-/* ============================ COMPLEXIDADE ==============================
-   Gráfico desenhado à mão em <canvas> (sem bibliotecas externas).
-   Pontos coloridos = médias REAIS vindas da tabela runs do Postgres.
-   Linhas tracejadas = curvas teóricas n² e n·log n com constante ajustada
-   pela escala média dos dados reais (para caberem no mesmo eixo Y).
-   ====================================================================== */
-const Chart = {
-  palette: {
-    bubble: "#ef476f", insertion: "#ffd166", selection: "#06d6a0",
-    merge: "#4f7cff", quick: "#b388ff", heap: "#ff9f1c",
-  },
-  loaded: false, points: [],
-
-  async ensureLoaded() { await this.fetchData(); this.draw(); },
-
-  async fetchData() {
-    try { this.points = (await api("/api/complexity")).points; this.loaded = true; }
-    catch (e) { toast(e.message, true); }
-    this.legend();
-  },
-
-  legend() {
-    const used = [...new Set(this.points.map(p => p.algorithm))];
-    $("#chart-legend").innerHTML = used.map(id =>
-      `<span><i style="background:${this.palette[id]}"></i>${META.sorting.find(a => a.id === id)?.name || id}</span>`
-    ).join("") +
-    `<span><span class="sw-dash"></span>n² teórico</span>
-     <span><span class="sw-dash"></span>n·log n teórico</span>`;
-  },
-
-  draw() {
-    const cv = $("#chart"), metric = $("#chart-metric").value;
-    const rect = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
-    cv.width = rect.width * dpr; cv.height = rect.height * dpr;
-    const g = cv.getContext("2d");
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    const W = rect.width, H = rect.height;
-    const M = { l: 78, r: 20, t: 20, b: 42 };   // margens internas do gráfico
-    g.clearRect(0, 0, W, H);
-    g.font = "13px Geneva, Verdana, sans-serif";
-
-    const pts = this.points.filter(p => Number.isFinite(p[metric]));
-    const label = { comparisons: "comparações (média real)", swaps: "trocas/escritas (média real)", elapsed_ms: "tempo no servidor (ms, média real)" }[metric];
-
-    if (!pts.length) {
-      g.fillStyle = "#666666";
-      g.textAlign = "center";
-      g.fillText("Sem dados ainda — rode algumas ordenações para povoar o gráfico!", W / 2, H / 2);
-      $("#chart-note").textContent = "";
-      return;
-    }
-
-    const maxX = Math.max(...pts.map(p => p.size)) + 10;
-    const maxY = Math.max(...pts.map(p => p[metric])) * 1.08;
-    const X = size => M.l + (size / maxX) * (W - M.l - M.r);       // tamanho -> pixel X
-    const Y = val => H - M.b - (val / maxY) * (H - M.t - M.b);     // valor  -> pixel Y
-
-    // --- grade horizontal + rótulos do eixo Y ---
-    g.textAlign = "right"; g.fillStyle = "#333333"; g.strokeStyle = "#CCCCCC";
-    for (let i = 0; i <= 5; i++) {
-      const val = maxY * i / 5, y = Y(val);
-      g.beginPath(); g.moveTo(M.l, y); g.lineTo(W - M.r, y); g.stroke();
-      g.fillText(shortNum(val), M.l - 8, y + 4);
-    }
-    // --- rótulos do eixo X (dezenas) ---
-    g.textAlign = "center";
-    const stepX = Math.ceil(maxX / 80) * 10;
-    for (let x = 0; x <= maxX; x += stepX) g.fillText(x, X(x), H - M.b + 18);
-    g.fillText("tamanho da entrada (n)", M.l + (W - M.l - M.r) / 2, H - 6);
-    g.save(); g.translate(14, H / 2); g.rotate(-Math.PI / 2);
-    g.fillText(label, 0, 0); g.restore();
-
-    // --- curvas teóricas (somente métricas contáveis, tempo não tem fórmula) ---
-    if (metric !== "elapsed_ms") {
-      const sumF = fn => pts.reduce((s, p) => s + fn(p.size), 0);
-      const sumV = pts.reduce((s, p) => s + p[metric], 0);
-      // constante k ajusta a altura da curva à escala média dos pontos reais
-      const kQuad = sumV / sumF(n => n * n);
-      const kLog  = sumV / sumF(n => n * Math.log2(Math.max(n, 2)));
-      dashed(g, "#98a2b8", () => line(g, X, Y, 2, maxX, n => kQuad * n * n));
-      dashed(g, "#98a2b8", () => line(g, X, Y, 2, maxX, n => kLog * n * Math.log2(Math.max(n, 2))));
-    }
-
-    // --- pontos reais: um círculo por (algoritmo, balde de tamanho) ---
-    for (const p of pts) {
-      g.beginPath();
-      g.arc(X(p.size), Y(p[metric]), 6, 0, Math.PI * 2);
-      g.fillStyle = this.palette[p.algorithm] || "#000000";
-      g.fill();
-      g.strokeStyle = "#FFFFFF"; g.lineWidth = 1.5; g.stroke(); g.lineWidth = 1;
-    }
-
-    const samples = pts.reduce((s, p) => s + p.samples, 0);
-    $("#chart-note").textContent =
-      `${pts.length} pontos agregados de ${fmtInt(samples)} execuções reais · baldes de tamanho em dezenas · quanto mais você usa o site, mais denso fica o gráfico.`;
-  },
-};
-
-// Atalhos de desenho usados pelo Chart
-function line(g, X, Y, x0, x1, fn) {
-  g.beginPath();
-  for (let x = x0; x <= x1; x += Math.max(1, (x1 - x0) / 200)) {
-    const px = X(x), py = Y(fn(x));
-    x === x0 ? g.moveTo(px, py) : g.lineTo(px, py);
-  }
-  g.stroke();
-}
-function dashed(g, color, fn) {
-  g.save();
-  g.setLineDash([6, 5]); g.strokeStyle = color; g.lineWidth = 1.6;
-  fn();
-  g.restore();
-}
-function shortNum(v) {
-  if (v >= 1e6) return (v / 1e6).toFixed(1) + "M";
-  if (v >= 1e3) return (v / 1e3).toFixed(v >= 1e4 ? 0 : 1) + "k";
-  return Math.round(v);
-}
-
-$("#chart-metric").addEventListener("change", () => Chart.draw());
-$("#btn-chart-refresh").addEventListener("click", () => Chart.ensureLoaded());
-window.addEventListener("resize", () => {
-  if ($("#tab-chart").classList.contains("active")) Chart.draw();
-});
 
 /* =============================== HISTÓRICO ============================== */
 const History = {
