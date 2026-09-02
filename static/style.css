@@ -134,6 +134,13 @@ button.small { padding: 5px 12px; font-size: 13px; }
 .g-start { color: #009900; font-weight: bold; }
 .g-end { color: #CC0000; font-weight: bold; }
 
+/* Legenda do grafo - cores que correspondem aos nós reais */
+.g-start { background: #00CC66; border: 1px solid #006600; }
+.g-end   { background: #FF5050; border: 1px solid #990000; }
+.g-wall  { background: #333333; }
+.g-vis   { background: #CCCCFF; }
+.g-path  { background: #FFFF66; }
+
 .stats-row { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 12px; }
 .stat { font-size: 14px; color: #555555; }
 .stat b { color: #CC0000; font-size: 17px; margin-left: 5px; }
