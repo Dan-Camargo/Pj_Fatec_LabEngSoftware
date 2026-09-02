@@ -102,6 +102,8 @@ function applySortOp(st, op) {
     const max = Math.max(...st.values, 1);
     bars[op.a].style.height = (st.values[op.a] / max * 100) + "%";
     bars[op.b].style.height = (st.values[op.b] / max * 100) + "%";
+    bars[op.a].title = st.values[op.a];
+    bars[op.b].title = st.values[op.b];
     bars[op.a].classList.add("swp");
     bars[op.b].classList.add("swp");
     st.transient.push(bars[op.a], bars[op.b]);
@@ -109,6 +111,7 @@ function applySortOp(st, op) {
     st.values[op.a] = op.v;
     const max = Math.max(...st.values, 1);
     bars[op.a].style.height = (op.v / max * 100) + "%";
+    bars[op.a].title = op.v;
     bars[op.a].classList.add("wrt");
     st.transient.push(bars[op.a]);
   } else if (op.t === "p") {             // novo pivô (quick sort)
@@ -127,6 +130,7 @@ function repaintBars(st) {
   $$(".bar", st.barsEl).forEach((el, i) => {
     el.className = "bar";
     el.style.height = (st.values[i] / max * 100) + "%";
+    el.title = st.values[i];
   });
   st.pivot = null;
   st.transient = [];
