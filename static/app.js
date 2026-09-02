@@ -149,6 +149,7 @@ function buildBars(container, values) {
 const Sort = {
   st: newState($("#bars")),
   playing: false, timer: null, savedId: null,
+  _generating: false,
 
   algo() { return $("#sort-algo").value; },
   speedOps() { const s = +$("#speed").value; return Math.max(1, Math.round((s / 15) ** 2)); },
@@ -214,9 +215,15 @@ const Sort = {
     this.timer = setTimeout(() => this.tick(), 25);
   },
 
-  stepOne() {
+  async stepOne() {
     if (this.playing) this.pause();
-    if (!this.st.ops.length) return;
+    if (!this.st.ops.length) {
+      if (this._generating) return;
+      this._generating = true;
+      const ok = await this.generate();
+      this._generating = false;
+      if (!ok) return;
+    }
     if (this.st.idx >= this.st.ops.length) this.reset();
     applySortOp(this.st, this.st.ops[this.st.idx++]);
     if (this.st.idx >= this.st.ops.length) this.finish();
