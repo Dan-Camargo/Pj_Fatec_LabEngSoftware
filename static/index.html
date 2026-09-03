@@ -8,6 +8,27 @@
 <link rel="stylesheet" href="/static/style.css?v=2006">
 </head>
 <body>
+<!-- =========================== TELA DE LOGIN =========================== -->
+<div id="login-overlay" class="login-overlay hidden">
+  <div class="login-window">
+    <div class="win-title">:: AlgoViz — Acesso ao Sistema ::</div>
+    <div class="login-content">
+      <div class="brand"><h1>:: Algo<span>Viz</span> ::</h1></div>
+      <p class="login-desc">Entre com sua conta ou crie um novo registro para acessar o visualizador de algoritmos.</p>
+      <label>Usuário
+        <input id="overlay-user" type="text" placeholder="usuário" maxlength="30" autocomplete="username">
+      </label>
+      <label>Senha
+        <input id="overlay-pass" type="password" placeholder="senha" maxlength="100" autocomplete="current-password">
+      </label>
+      <div class="btn-row">
+        <button id="overlay-btn-login" class="primary">Entrar ▶</button>
+        <button id="overlay-btn-register" class="ghost">Criar conta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <header>
   <div class="brand"><h1>:: Algo<span>Viz</span> ::</h1></div>
   <nav id="tabs">

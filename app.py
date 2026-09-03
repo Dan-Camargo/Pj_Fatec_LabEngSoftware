@@ -784,6 +784,12 @@ def api_delete_dataset(did):
 
 with db() as _conn, _conn.cursor() as _cur:
     _cur.execute(SCHEMA)
+    _cur.execute("SELECT id FROM users WHERE username = 'algoviz'")
+    if not _cur.fetchone():
+        _cur.execute(
+            "INSERT INTO users (username, password_hash) VALUES (%s, %s)",
+            ("algoviz", generate_password_hash("algoviz")),
+        )
 
 if __name__ == "__main__":
     from waitress import serve

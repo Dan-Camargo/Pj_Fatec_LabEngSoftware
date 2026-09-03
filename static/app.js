@@ -821,8 +821,9 @@ const Auth = {
 
   render() {
     const box = $("#auth-box");
+    const overlay = $("#login-overlay");
     if (this.user) {
-      // ---- estado logado: saudação + botão sair + filtro no histórico ----
+      if (overlay) overlay.classList.add("hidden");
       box.innerHTML = `<span class="hello">👤 ${this.user.username}</span>` +
         `<button id="btn-logout" class="ghost small">Sair</button>`;
       $("#btn-logout").onclick = async () => {
@@ -832,22 +833,16 @@ const Auth = {
       };
       $("#hist-scope").classList.remove("hidden");
     } else {
-      // ---- estado anônimo: mini formulário entrar/criar conta ----
-      box.innerHTML =
-        `<input id="in-user" placeholder="usuário" maxlength="30" autocomplete="username">
-         <input id="in-pass" type="password" placeholder="senha" maxlength="100" autocomplete="current-password">
-         <button id="btn-login" class="ghost small">Entrar</button>
-         <button id="btn-register" class="ghost small">Criar conta</button>`;
-      $("#btn-login").onclick = () => this.submit("/api/login", "Bem-vindo(a) de volta!");
-      $("#btn-register").onclick = () => this.submit("/api/register", "Conta criada — você já está logado!");
+      if (overlay) overlay.classList.remove("hidden");
+      box.innerHTML = "";
       $("#hist-scope").value = "all";
       $("#hist-scope").classList.add("hidden");
     }
   },
 
   async submit(url, okMsg) {
-    const username = $("#in-user").value.trim();
-    const password = $("#in-pass").value;
+    const username = $("#overlay-user").value.trim();
+    const password = $("#overlay-pass").value;
     if (!username || !password) { toast("Informe usuário e senha.", true); return; }
     try {
       await api(url, { method: "POST", body: JSON.stringify({ username, password }) });
@@ -856,6 +851,13 @@ const Auth = {
     } catch (e) { toast(e.message, true); }
   },
 };
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btnLogin = $("#overlay-btn-login");
+  const btnRegister = $("#overlay-btn-register");
+  if (btnLogin) btnLogin.onclick = () => Auth.submit("/api/login", "Bem-vindo(a) de volta!");
+  if (btnRegister) btnRegister.onclick = () => Auth.submit("/api/register", "Conta criada — você já está logado!");
+});
 
 /* ================================== boot ================================ */
 (async function boot() {
