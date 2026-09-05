@@ -53,6 +53,65 @@ CREATE TABLE IF NOT EXISTS users (
 -- (NULL = executado por um visitante anônimo).
 ALTER TABLE runs     ADD COLUMN IF NOT EXISTS user_id INT REFERENCES users(id);
 ALTER TABLE datasets ADD COLUMN IF NOT EXISTS user_id INT REFERENCES users(id);
+
+-- ========================= Plataforma de ensino =========================
+-- Entidades do domínio: professor, aluno, agendamento, aula e tarefa.
+-- Relacionamentos:
+--   professor 1---N tarefa         (o professor cria as tarefas)
+--   tarefa  N---N aluno           (uma tarefa vale para vários alunos)
+--   aluno   1---N aula            (cada aula pertence a 1 aluno)
+--   agendamento 1---N aula        (um agendamento pode conter várias aulas)
+--   professor 1---N agendamento   (o professor marca vários agendamentos)
+CREATE TABLE IF NOT EXISTS professor (
+    id            SERIAL PRIMARY KEY,
+    nome          VARCHAR(120) NOT NULL,
+    email         VARCHAR(120) UNIQUE,
+    telefone      VARCHAR(30),
+    especialidade VARCHAR(80),
+    criado_em     TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS aluno (
+    id        SERIAL PRIMARY KEY,
+    nome      VARCHAR(120) NOT NULL,
+    email     VARCHAR(120) UNIQUE,
+    criado_em TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS agendamento (
+    id           SERIAL PRIMARY KEY,
+    professor_id INT NOT NULL REFERENCES professor(id) ON DELETE CASCADE,
+    titulo       VARCHAR(120) NOT NULL,
+    descricao    TEXT,
+    inicio       TIMESTAMPTZ,
+    fim          TIMESTAMPTZ,
+    criado_em    TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS aula (
+    id             SERIAL PRIMARY KEY,
+    aluno_id       INT NOT NULL REFERENCES aluno(id) ON DELETE CASCADE,
+    agendamento_id INT REFERENCES agendamento(id) ON DELETE SET NULL,
+    conteudo       TEXT,
+    status         VARCHAR(20) NOT NULL DEFAULT 'agendada',
+    criado_em      TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS tarefa (
+    id           SERIAL PRIMARY KEY,
+    professor_id INT NOT NULL REFERENCES professor(id) ON DELETE CASCADE,
+    titulo       VARCHAR(120) NOT NULL,
+    descricao    TEXT,
+    criado_em    TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS tarefa_aluno (
+    tarefa_id INT NOT NULL REFERENCES tarefa(id) ON DELETE CASCADE,
+    aluno_id  INT NOT NULL REFERENCES aluno(id) ON DELETE CASCADE,
+    entregue  BOOLEAN NOT NULL DEFAULT FALSE,
+    criado_em TIMESTAMPTZ DEFAULT now(),
+    PRIMARY KEY (tarefa_id, aluno_id)
+);
 """
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
@@ -103,6 +162,7 @@ def current_user():
 # --------------------------- autenticação -----------------------------------
 
 USERNAME_RE = re.compile(r"[A-Za-z0-9_]{3,30}")
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 @app.post("/api/register")
@@ -779,6 +839,89 @@ def api_delete_dataset(did):
         deleted = cur.rowcount
     if not deleted:
         return jsonify(error="Conjunto não encontrado."), 404
+    return jsonify(ok=True)
+
+
+# --------------------------- CRUD de professores --------------------------
+
+def _str(v):
+    return str(v).strip()
+
+
+def _parse_professor(data):
+    """Valida e normaliza os campos de um professor vindo do front-end."""
+    nome = _str(data.get("nome", ""))
+    email = _str(data.get("email") or "")
+    telefone = _str(data.get("telefone") or "")
+    especialidade = _str(data.get("especialidade") or "")
+    if not (1 <= len(nome) <= 120):
+        raise ValueError("Nome deve ter de 1 a 120 caracteres.")
+    if email and (len(email) > 120 or not EMAIL_RE.fullmatch(email)):
+        raise ValueError("E-mail inválido.")
+    if len(telefone) > 30:
+        raise ValueError("Telefone deve ter no máximo 30 caracteres.")
+    if len(especialidade) > 80:
+        raise ValueError("Especialidade deve ter no máximo 80 caracteres.")
+    return nome, email or None, telefone or None, especialidade or None
+
+
+@app.get("/api/professores")
+def api_list_professores():
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, nome, email, telefone, especialidade, criado_em"
+            " FROM professor ORDER BY nome")
+        rows = cur.fetchall()
+    out = [{"id": r[0], "nome": r[1], "email": r[2], "telefone": r[3],
+            "especialidade": r[4], "criado_em": r[5].isoformat()} for r in rows]
+    return jsonify(out)
+
+
+@app.post("/api/professores")
+def api_create_professor():
+    data = request.get_json(force=True, silent=True) or {}
+    try:
+        nome, email, telefone, especialidade = _parse_professor(data)
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    try:
+        with db() as conn, conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO professor (nome, email, telefone, especialidade)"
+                " VALUES (%s,%s,%s,%s) RETURNING id",
+                (nome, email, telefone, especialidade))
+            pid = cur.fetchone()[0]
+    except psycopg2.errors.UniqueViolation:
+        return jsonify(error="Já existe um professor com esse e-mail."), 409
+    return jsonify(id=pid, nome=nome), 201
+
+
+@app.put("/api/professores/<int:pid>")
+def api_update_professor(pid):
+    data = request.get_json(force=True, silent=True) or {}
+    try:
+        nome, email, telefone, especialidade = _parse_professor(data)
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    try:
+        with db() as conn, conn.cursor() as cur:
+            cur.execute(
+                "UPDATE professor SET nome=%s, email=%s, telefone=%s,"
+                " especialidade=%s WHERE id=%s",
+                (nome, email, telefone, especialidade, pid))
+            if cur.rowcount == 0:
+                return jsonify(error="Professor não encontrado."), 404
+    except psycopg2.errors.UniqueViolation:
+        return jsonify(error="Já existe um professor com esse e-mail."), 409
+    return jsonify(ok=True)
+
+
+@app.delete("/api/professores/<int:pid>")
+def api_delete_professor(pid):
+    with db() as conn, conn.cursor() as cur:
+        cur.execute("DELETE FROM professor WHERE id=%s", (pid,))
+        if cur.rowcount == 0:
+            return jsonify(error="Professor não encontrado."), 404
     return jsonify(ok=True)
 
 
