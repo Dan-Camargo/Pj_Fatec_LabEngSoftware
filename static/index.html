@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#000066">
 <title>AlgoViz — Visualizador de Algoritmos</title>
-<link rel="stylesheet" href="/static/style.css?v=2006">
+<link rel="stylesheet" href="/static/style.css?v=2007">
 </head>
 <body>
 <!-- =========================== TELA DE LOGIN =========================== -->
@@ -37,6 +37,7 @@
     <button data-tab="search">Busca Binária</button>
     <button data-tab="path">Grafos · Caminhos</button>
     <button data-tab="history">Histórico <small>(Postgres)</small></button>
+    <button data-tab="professores">Professores</button>
   </nav>
   <div id="auth-box" class="auth-box"></div>
 </header>
@@ -241,7 +242,49 @@
   </div>
 </section>
 
+<!-- ============================== PROFESSORES =========================== -->
+<section id="tab-professores" class="tab">
+  <div class="panel">
+    <div class="hist-head">
+      <h2>Cadastro de professores</h2>
+      <button id="btn-prof-novo" class="primary small">＋ Novo professor</button>
+    </div>
+    <table class="tbl">
+      <thead>
+        <tr><th>#</th><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Especialidade</th><th>Ações</th></tr>
+      </thead>
+      <tbody id="tbl-professores"></tbody>
+    </table>
+    <p class="hint">Os professores criam <b>tarefas</b> e marcam <b>agendamentos</b> de aulas da plataforma.</p>
+  </div>
+</section>
+
 </main>
-<script src="/static/app.js?v=2006"></script>
+<script src="/static/app.js?v=2007"></script>
+<!-- ===================== MODAL DE CADASTRO DE PROFESSOR ================= -->
+<div id="prof-modal" class="login-overlay hidden">
+  <div class="login-window">
+    <div class="win-title">:: Cadastro de Professor ::</div>
+    <div class="login-content">
+      <label>Nome
+        <input id="prof-nome" type="text" maxlength="120" placeholder="nome completo">
+      </label>
+      <label>E-mail
+        <input id="prof-email" type="text" maxlength="120" placeholder="nome@escola.edu.br">
+      </label>
+      <label>Telefone
+        <input id="prof-telefone" type="text" maxlength="30" placeholder="(00) 90000-0000">
+      </label>
+      <label>Especialidade
+        <input id="prof-especialidade" type="text" maxlength="80" placeholder="ex.: Matemática">
+      </label>
+      <div class="btn-row">
+        <button id="btn-prof-salvar" class="primary">Salvar ▶</button>
+        <button id="btn-prof-cancelar" class="ghost">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

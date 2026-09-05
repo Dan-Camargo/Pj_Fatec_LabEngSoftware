@@ -65,6 +65,7 @@ main { max-width: 1450px; margin: 0 auto; padding: 18px 24px 40px; }
 .tab { display: none; }
 .tab.active { display: grid; grid-template-columns: 340px 1fr; gap: 18px; align-items: start; }
 #tab-history.active { grid-template-columns: 1fr; }
+#tab-professores.active { grid-template-columns: 1fr; }
 
 .panel {
   background: #FFFFFF;
