@@ -46,7 +46,8 @@ CREATE TABLE IF NOT EXISTS users (
     id            SERIAL PRIMARY KEY,
     username      VARCHAR(30) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    created_at    TIMESTAMPTZ DEFAULT now()
+    created_at    TIMESTAMPTZ DEFAULT now(),
+    role          VARCHAR(255) NOT NULL
 );
 
 -- Colunas opcionais que ligam cada execução/conjunto ao usuário que os criou
