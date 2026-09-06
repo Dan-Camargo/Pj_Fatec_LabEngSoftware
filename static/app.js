@@ -60,6 +60,7 @@ $$("#tabs button").forEach(btn =>
     // Abas que buscam dados sob demanda carregam na primeira abertura
     if (btn.dataset.tab === "history") History.load();
     if (btn.dataset.tab === "professores") Professores.load();
+    if (btn.dataset.tab === "alunos") Alunos.load();
   })
 );
 
@@ -899,6 +900,106 @@ $("#tbl-professores").addEventListener("click", e => {
   else if (del) Professores.remove(+del.dataset.del);
 });
 
+/* ================================ ALUNOS ================================
+   CRUD completo da entidade "aluno" da plataforma de ensino — mesmo molde
+   do CRUD de professores, com RA como campo adicional.
+   ====================================================================== */
+const Alunos = {
+  items: [],
+  editId: null,
+
+  async load() {
+    try {
+      this.items = await api("/api/alunos");
+    } catch (e) { toast(e.message, true); }
+    this.render();
+  },
+
+  render() {
+    const tbody = $("#tbl-alunos");
+    tbody.innerHTML = "";
+    if (!this.items.length) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = '<td colspan="7">Nenhum aluno cadastrado ainda.</td>';
+      tbody.appendChild(tr);
+      return;
+    }
+    this.items.forEach(a => {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        `<td>${a.id}</td>` +
+        `<td><b>${a.ra || "—"}</b></td>` +
+        `<td><b>${a.nome}</b></td>` +
+        `<td>${a.email || "—"}</td>` +
+        `<td>${a.telefone || "—"}</td>` +
+        `<td>${a.especialidade || "—"}</td>` +
+        `<td>` +
+        `<button class="ghost small" data-edit="${a.id}">Editar</button> ` +
+        `<button class="ghost small" data-del="${a.id}">Excluir</button>` +
+        `</td>`;
+      tbody.appendChild(tr);
+    });
+  },
+
+  open(id) {
+    this.editId = id || null;
+    const a = id ? this.items.find(x => x.id === id) : null;
+    $("#aluno-ra").value = a ? a.ra : "";
+    $("#aluno-nome").value = a ? a.nome : "";
+    $("#aluno-email").value = a && a.email ? a.email : "";
+    $("#aluno-telefone").value = a && a.telefone ? a.telefone : "";
+    $("#aluno-especialidade").value = a && a.especialidade ? a.especialidade : "";
+    $("#aluno-modal").classList.remove("hidden");
+    $("#aluno-ra").focus();
+  },
+
+  close() {
+    $("#aluno-modal").classList.add("hidden");
+    this.editId = null;
+  },
+
+  async submit() {
+    const payload = {
+      ra: $("#aluno-ra").value.trim(),
+      nome: $("#aluno-nome").value.trim(),
+      email: $("#aluno-email").value.trim(),
+      telefone: $("#aluno-telefone").value.trim(),
+      especialidade: $("#aluno-especialidade").value.trim(),
+    };
+    if (!payload.ra) { toast("Informe o RA do aluno.", true); return; }
+    if (!payload.nome) { toast("Informe o nome do aluno.", true); return; }
+    let url = "/api/alunos", method = "POST", okMsg = "Aluno cadastrado!";
+    if (this.editId) {
+      url += "/" + this.editId;
+      method = "PUT";
+      okMsg = "Aluno atualizado!";
+    }
+    try {
+      await api(url, { method, body: JSON.stringify(payload) });
+      toast(okMsg);
+      this.close();
+      await this.load();
+    } catch (e) { toast(e.message, true); }
+  },
+
+  async remove(id) {
+    const a = this.items.find(x => x.id === id);
+    if (!confirm(`Excluir o aluno "${a ? a.nome : id}"?`)) return;
+    try {
+      await api("/api/alunos/" + id, { method: "DELETE" });
+      toast("Aluno excluído.");
+      await this.load();
+    } catch (e) { toast(e.message, true); }
+  },
+};
+
+$("#tbl-alunos").addEventListener("click", e => {
+  const ed = e.target.closest("[data-edit]");
+  const del = e.target.closest("[data-del]");
+  if (ed) Alunos.open(+ed.dataset.edit);
+  else if (del) Alunos.remove(+del.dataset.del);
+});
+
 /* ============================= AUTENTICAÇÃO =============================
    Login simples com cookie de sessão assinado pelo Flask.
    Senhas nunca trafegam de volta: o back-end guarda apenas o hash PBKDF2.
@@ -961,6 +1062,14 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#btn-prof-cancelar").addEventListener("click", () => Professores.close());
   $("#prof-modal").addEventListener("click", e => {
     if (e.target === e.currentTarget) Professores.close();
+  });
+
+  // Modal de aluno: salvar, cancelar e fechar ao clicar fora
+  $("#btn-aluno-novo").addEventListener("click", () => Alunos.open(null));
+  $("#btn-aluno-salvar").addEventListener("click", () => Alunos.submit());
+  $("#btn-aluno-cancelar").addEventListener("click", () => Alunos.close());
+  $("#aluno-modal").addEventListener("click", e => {
+    if (e.target === e.currentTarget) Alunos.close();
   });
 });
 

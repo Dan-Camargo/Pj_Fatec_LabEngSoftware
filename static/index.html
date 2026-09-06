@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#000066">
 <title>AlgoViz — Visualizador de Algoritmos</title>
-<link rel="stylesheet" href="/static/style.css?v=2007">
+<link rel="stylesheet" href="/static/style.css?v=2009">
 </head>
 <body>
 <!-- =========================== TELA DE LOGIN =========================== -->
@@ -38,6 +38,7 @@
     <button data-tab="path">Grafos · Caminhos</button>
     <button data-tab="history">Histórico <small>(Postgres)</small></button>
     <button data-tab="professores">Professores</button>
+    <button data-tab="alunos">Alunos</button>
   </nav>
   <div id="auth-box" class="auth-box"></div>
 </header>
@@ -259,8 +260,25 @@
   </div>
 </section>
 
+<!-- =============================== ALUNOS ============================== -->
+<section id="tab-alunos" class="tab">
+  <div class="panel">
+    <div class="hist-head">
+      <h2>Cadastro de alunos</h2>
+      <button id="btn-aluno-novo" class="primary small">＋ Novo aluno</button>
+    </div>
+    <table class="tbl">
+      <thead>
+        <tr><th>#</th><th>RA</th><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Especialidade</th><th>Ações</th></tr>
+      </thead>
+      <tbody id="tbl-alunos"></tbody>
+    </table>
+    <p class="hint">Os alunos têm um <b>RA</b> único e participam das <b>aulas</b> e <b>tarefas</b> da plataforma.</p>
+  </div>
+</section>
+
 </main>
-<script src="/static/app.js?v=2007"></script>
+<script src="/static/app.js?v=2009"></script>
 <!-- ===================== MODAL DE CADASTRO DE PROFESSOR ================= -->
 <div id="prof-modal" class="login-overlay hidden">
   <div class="login-window">
@@ -281,6 +299,34 @@
       <div class="btn-row">
         <button id="btn-prof-salvar" class="primary">Salvar ▶</button>
         <button id="btn-prof-cancelar" class="ghost">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL DE CADASTRO DE ALUNO ==================== -->
+<div id="aluno-modal" class="login-overlay hidden">
+  <div class="login-window">
+    <div class="win-title">:: Cadastro de Aluno ::</div>
+    <div class="login-content">
+      <label>RA
+        <input id="aluno-ra" type="text" maxlength="30" placeholder="ex.: 123456">
+      </label>
+      <label>Nome
+        <input id="aluno-nome" type="text" maxlength="120" placeholder="nome completo">
+      </label>
+      <label>E-mail
+        <input id="aluno-email" type="text" maxlength="120" placeholder="nome@escola.edu.br">
+      </label>
+      <label>Telefone
+        <input id="aluno-telefone" type="text" maxlength="30" placeholder="(00) 90000-0000">
+      </label>
+      <label>Especialidade
+        <input id="aluno-especialidade" type="text" maxlength="80" placeholder="ex.: curso ou área de interesse">
+      </label>
+      <div class="btn-row">
+        <button id="btn-aluno-salvar" class="primary">Salvar ▶</button>
+        <button id="btn-aluno-cancelar" class="ghost">Cancelar</button>
       </div>
     </div>
   </div>

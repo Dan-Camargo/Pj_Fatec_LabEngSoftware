@@ -9,13 +9,8 @@ import psycopg2
 from flask import Flask, request, jsonify, send_from_directory, session
 from werkzeug.security import generate_password_hash, check_password_hash
 
-DB_CONF = {
-    "host": os.environ.get("PGHOST", "127.0.0.1"),
-    "port": int(os.environ.get("PGPORT", "5432")),
-    "dbname": os.environ.get("PGDATABASE", "algoviz"),
-    "user": os.environ.get("PGUSER", "algoviz"),
-    "password": os.environ.get("PGPASSWORD", "algoviz"),
-}
+from db import db
+from alunos import alunos_bp
 
 MAX_N = 200
 MAX_OPS = 60000
@@ -54,6 +49,12 @@ CREATE TABLE IF NOT EXISTS users (
 ALTER TABLE runs     ADD COLUMN IF NOT EXISTS user_id INT REFERENCES users(id);
 ALTER TABLE datasets ADD COLUMN IF NOT EXISTS user_id INT REFERENCES users(id);
 
+-- Migração suave da tabela aluno: mesmos campos do professor + RA único.
+ALTER TABLE aluno ADD COLUMN IF NOT EXISTS ra VARCHAR(30);
+ALTER TABLE aluno ADD COLUMN IF NOT EXISTS telefone VARCHAR(30);
+ALTER TABLE aluno ADD COLUMN IF NOT EXISTS especialidade VARCHAR(80);
+CREATE UNIQUE INDEX IF NOT EXISTS aluno_ra_key ON aluno (ra);
+
 -- ========================= Plataforma de ensino =========================
 -- Entidades do domínio: professor, aluno, agendamento, aula e tarefa.
 -- Relacionamentos:
@@ -72,10 +73,13 @@ CREATE TABLE IF NOT EXISTS professor (
 );
 
 CREATE TABLE IF NOT EXISTS aluno (
-    id        SERIAL PRIMARY KEY,
-    nome      VARCHAR(120) NOT NULL,
-    email     VARCHAR(120) UNIQUE,
-    criado_em TIMESTAMPTZ DEFAULT now()
+    id            SERIAL PRIMARY KEY,
+    ra            VARCHAR(30) UNIQUE,
+    nome          VARCHAR(120) NOT NULL,
+    email         VARCHAR(120) UNIQUE,
+    telefone      VARCHAR(30),
+    especialidade VARCHAR(80),
+    criado_em     TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS agendamento (
@@ -139,9 +143,7 @@ app.secret_key = _load_secret_key()
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 
-
-def db():
-    return psycopg2.connect(**DB_CONF)
+app.register_blueprint(alunos_bp)
 
 
 def current_user():
