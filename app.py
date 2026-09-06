@@ -9,6 +9,8 @@ import psycopg2
 from flask import Flask, request, jsonify, send_from_directory, session
 from werkzeug.security import generate_password_hash, check_password_hash
 
+from migrate import run_migrations
+
 DB_CONF = {
     "host": os.environ.get("PGHOST", "127.0.0.1"),
     "port": int(os.environ.get("PGPORT", "5432")),
@@ -20,100 +22,6 @@ DB_CONF = {
 MAX_N = 200
 MAX_OPS = 60000
 MAX_GRID_CELLS = 30 * 50
-
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS runs (
-    id          SERIAL PRIMARY KEY,
-    algorithm   VARCHAR(40)  NOT NULL,
-    category    VARCHAR(20)  NOT NULL,
-    input_size  INT          NOT NULL,
-    comparisons INT DEFAULT 0,
-    swaps       INT DEFAULT 0,
-    elapsed_ms  NUMERIC(12,3) DEFAULT 0,
-    created_at  TIMESTAMPTZ DEFAULT now()
-);
-CREATE TABLE IF NOT EXISTS datasets (
-    id         SERIAL PRIMARY KEY,
-    name       VARCHAR(80) UNIQUE NOT NULL,
-    kind       VARCHAR(20) NOT NULL DEFAULT 'sort',
-    payload    TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Usuários do site. A senha NUNCA é salva em texto puro: guardamos só o
--- hash (PBKDF2 via werkzeug.security), então nem o banco vazado revela ela.
-CREATE TABLE IF NOT EXISTS users (
-    id            SERIAL PRIMARY KEY,
-    username      VARCHAR(30) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    created_at    TIMESTAMPTZ DEFAULT now(),
-    role          VARCHAR(255) NOT NULL
-);
-
--- Colunas opcionais que ligam cada execução/conjunto ao usuário que os criou
--- (NULL = executado por um visitante anônimo).
-ALTER TABLE runs     ADD COLUMN IF NOT EXISTS user_id INT REFERENCES users(id);
-ALTER TABLE datasets ADD COLUMN IF NOT EXISTS user_id INT REFERENCES users(id);
-
--- ========================= Plataforma de ensino =========================
--- Entidades do domínio: professor, aluno, agendamento, aula e tarefa.
--- Relacionamentos:
---   professor 1---N tarefa         (o professor cria as tarefas)
---   tarefa  N---N aluno           (uma tarefa vale para vários alunos)
---   aluno   1---N aula            (cada aula pertence a 1 aluno)
---   agendamento 1---N aula        (um agendamento pode conter várias aulas)
---   professor 1---N agendamento   (o professor marca vários agendamentos)
-CREATE TABLE IF NOT EXISTS professor (
-    id            SERIAL PRIMARY KEY,
-    nome          VARCHAR(120) NOT NULL,
-    email         VARCHAR(120) UNIQUE,
-    telefone      VARCHAR(30),
-    especialidade VARCHAR(80),
-    criado_em     TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS aluno (
-    id        SERIAL PRIMARY KEY,
-    nome      VARCHAR(120) NOT NULL,
-    email     VARCHAR(120) UNIQUE,
-    criado_em TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS agendamento (
-    id           SERIAL PRIMARY KEY,
-    professor_id INT NOT NULL REFERENCES professor(id) ON DELETE CASCADE,
-    titulo       VARCHAR(120) NOT NULL,
-    descricao    TEXT,
-    inicio       TIMESTAMPTZ,
-    fim          TIMESTAMPTZ,
-    criado_em    TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS aula (
-    id             SERIAL PRIMARY KEY,
-    aluno_id       INT NOT NULL REFERENCES aluno(id) ON DELETE CASCADE,
-    agendamento_id INT REFERENCES agendamento(id) ON DELETE SET NULL,
-    conteudo       TEXT,
-    status         VARCHAR(20) NOT NULL DEFAULT 'agendada',
-    criado_em      TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS tarefa (
-    id           SERIAL PRIMARY KEY,
-    professor_id INT NOT NULL REFERENCES professor(id) ON DELETE CASCADE,
-    titulo       VARCHAR(120) NOT NULL,
-    descricao    TEXT,
-    criado_em    TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS tarefa_aluno (
-    tarefa_id INT NOT NULL REFERENCES tarefa(id) ON DELETE CASCADE,
-    aluno_id  INT NOT NULL REFERENCES aluno(id) ON DELETE CASCADE,
-    entregue  BOOLEAN NOT NULL DEFAULT FALSE,
-    criado_em TIMESTAMPTZ DEFAULT now(),
-    PRIMARY KEY (tarefa_id, aluno_id)
-);
-"""
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
@@ -963,8 +871,11 @@ def api_delete_professor(pid):
     return jsonify(ok=True)
 
 
+# Aplica as migrações pendentes (001_initial, 002_leticia_roles, ...) antes de
+# servir. Também funciona como passo separado do deploy: python migrate.py
+run_migrations()
+
 with db() as _conn, _conn.cursor() as _cur:
-    _cur.execute(SCHEMA)
     _cur.execute("SELECT id FROM users WHERE username = 'algoviz'")
     if not _cur.fetchone():
         _cur.execute(
