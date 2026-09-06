@@ -843,13 +843,25 @@ const Professores = {
     });
   },
 
-  open(id) {
+open(id) {
     this.editId = id || null;
     const p = id ? this.items.find(x => x.id === id) : null;
     $("#prof-nome").value = p ? p.nome : "";
     $("#prof-email").value = p && p.email ? p.email : "";
     $("#prof-telefone").value = p && p.telefone ? p.telefone : "";
     $("#prof-especialidade").value = p && p.especialidade ? p.especialidade : "";
+
+    // Campos de login do novo usuário
+    const userInput = $("#prof-user");
+    const passInput = $("#prof-pass");
+    if (userInput && passInput) {
+      userInput.value = "";
+      passInput.value = "";
+      // Ao editar um professor existente, oculta campos de credenciais
+      userInput.closest("label").style.display = id ? "none" : "block";
+      passInput.closest("label").style.display = id ? "none" : "block";
+    }
+
     $("#prof-modal").classList.remove("hidden");
     $("#prof-nome").focus();
   },
@@ -857,6 +869,12 @@ const Professores = {
   close() {
     $("#prof-modal").classList.add("hidden");
     this.editId = null;
+    const userInput = $("#prof-user");
+    const passInput = $("#prof-pass");
+    if (userInput && passInput) {
+      userInput.value = "";
+      passInput.value = "";
+    }
   },
 
   async submit() {
@@ -866,13 +884,25 @@ const Professores = {
       telefone: $("#prof-telefone").value.trim(),
       especialidade: $("#prof-especialidade").value.trim(),
     };
+
     if (!payload.nome) { toast("Informe o nome do professor.", true); return; }
-    let url = "/api/professores", method = "POST", okMsg = "Professor cadastrado!";
+
+    let url = "/api/professores", method = "POST", okMsg = "Professor cadastrado como usuário!";
     if (this.editId) {
       url += "/" + this.editId;
       method = "PUT";
       okMsg = "Professor atualizado!";
+    } else {
+      // Captura usuário e senha apenas na criação
+      payload.username = ($("#prof-user")?.value || "").trim();
+      payload.password = $("#prof-pass")?.value || "";
+
+      if (!payload.password || payload.password.length < 4) {
+        toast("A senha inicial deve ter no mínimo 4 caracteres.", true);
+        return;
+      }
     }
+
     try {
       await api(url, { method, body: JSON.stringify(payload) });
       toast(okMsg);

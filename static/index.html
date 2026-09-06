@@ -262,6 +262,7 @@
 </main>
 <script src="/static/app.js?v=2007"></script>
 <!-- ===================== MODAL DE CADASTRO DE PROFESSOR ================= -->
+<!-- alterado por leticia 05092026 -->
 <div id="prof-modal" class="login-overlay hidden">
   <div class="login-window">
     <div class="win-title">:: Cadastro de Professor ::</div>
@@ -278,6 +279,15 @@
       <label>Especialidade
         <input id="prof-especialidade" type="text" maxlength="80" placeholder="ex.: Matemática">
       </label>
+
+      <!-- Novos campos de acesso para virar usuário do sistema -->
+      <label>Usuário de Acesso
+        <input id="prof-user" type="text" maxlength="30" placeholder="ex: prof_carlos">
+      </label>
+      <label>Senha Provisória
+        <input id="prof-pass" type="password" maxlength="100" placeholder="mínimo 4 caracteres">
+      </label>
+
       <div class="btn-row">
         <button id="btn-prof-salvar" class="primary">Salvar ▶</button>
         <button id="btn-prof-cancelar" class="ghost">Cancelar</button>
