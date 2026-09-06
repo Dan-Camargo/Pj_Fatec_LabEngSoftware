@@ -876,7 +876,8 @@ def api_list_professores():
             "especialidade": r[4], "criado_em": r[5].isoformat()} for r in rows]
     return jsonify(out)
 
-
+#alterado por leticia 05092026,tentando criar usuario e senha para cada professor, para que ele possa logar no sistema e ver suas tarefas
+# alterado por leticia 05092026, criando usuario e professor na mesma transacao
 @app.post("/api/professores")
 def api_create_professor():
     data = request.get_json(force=True, silent=True) or {}
@@ -884,16 +885,47 @@ def api_create_professor():
         nome, email, telefone, especialidade = _parse_professor(data)
     except ValueError as e:
         return jsonify(error=str(e)), 400
+
+    # Define o login do usuário
+    default_user = email.split("@")[0] if email else nome.lower().replace(" ", "_")[:30]
+    username = str(data.get("username", "")).strip() or default_user
+    password = str(data.get("password", ""))
+
+    if not USERNAME_RE.fullmatch(username):
+        return jsonify(error="Usuário inválido: use de 3 a 30 caracteres (letras, números e _)."), 400
+    if not (4 <= len(password) <= 100):
+        return jsonify(error="A senha deve ter entre 4 e 100 caracteres."), 400
+
     try:
-        with db() as conn, conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO professor (nome, email, telefone, especialidade)"
-                " VALUES (%s,%s,%s,%s) RETURNING id",
-                (nome, email, telefone, especialidade))
-            pid = cur.fetchone()[0]
-    except psycopg2.errors.UniqueViolation:
-        return jsonify(error="Já existe um professor com esse e-mail."), 409
-    return jsonify(id=pid, nome=nome), 201
+        with db() as conn:
+            with conn.cursor() as cur:
+                # 1. Cria o login na tabela users com a coluna role
+                cur.execute(
+                    "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s) RETURNING id",
+                    (username, generate_password_hash(password), "Professor"),
+                )
+                user_id = cur.fetchone()[0]
+
+                # 2. Cria o registro na tabela professor
+                cur.execute(
+                    "INSERT INTO professor (nome, email, telefone, especialidade,login_id) VALUES (%s, %s, %s, %s,%s) RETURNING id",
+                    (nome, email, telefone, especialidade, user_id),
+                )
+                pid = cur.fetchone()[0]
+
+    except psycopg2.IntegrityError as e:
+        msg = str(e).lower()
+        if "users" in msg and "username" in msg:
+            return jsonify(error=f"O nome de usuário '{username}' já existe. Escolha outro."), 409
+        if "professor" in msg and "email" in msg:
+            return jsonify(error="Já existe um professor cadastrado com esse e-mail."), 409
+        return jsonify(error="Violação de dados duplicados no banco."), 409
+
+    except Exception as e:
+        # Pega qualquer outro erro e devolve o texto no alerta em vez de quebrar em 500
+        return jsonify(error=f"Erro interno: {str(e)}"), 400
+
+    return jsonify(id=pid, user_id=user_id, nome=nome, username=username, role="Professor"), 201
 
 
 @app.put("/api/professores/<int:pid>")
@@ -919,9 +951,14 @@ def api_update_professor(pid):
 @app.delete("/api/professores/<int:pid>")
 def api_delete_professor(pid):
     with db() as conn, conn.cursor() as cur:
+        cur.execute("SELECT login_id FROM professor WHERE id=%s", (pid,))
+        user_id = cur.fetchone()[0]
         cur.execute("DELETE FROM professor WHERE id=%s", (pid,))
         if cur.rowcount == 0:
-            return jsonify(error="Professor não encontrado."), 404
+          return jsonify(error="Professor não encontrado."), 404
+        cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
+        if cur.rowcount == 0:
+            return jsonify(error="Professor não encontrado."), 404    
     return jsonify(ok=True)
 
 
