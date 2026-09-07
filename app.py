@@ -7,9 +7,12 @@ from collections import deque
 
 import psycopg2
 from flask import Flask, request, jsonify, send_from_directory, session
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash
 
 from migrate import run_migrations
+from tela_login import auth_bp, current_user, set_db_handler, USERNAME_RE
+
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 DB_CONF = {
     "host": os.environ.get("PGHOST", "127.0.0.1"),
@@ -53,6 +56,10 @@ def db():
     return psycopg2.connect(**DB_CONF)
 
 
+set_db_handler(db)
+app.register_blueprint(auth_bp)
+
+
 def current_user():
     """Devolve {id, username} de quem está logado na sessão, ou None.
 
@@ -68,62 +75,7 @@ def current_user():
     return {"id": row[0], "username": row[1]} if row else None
 
 
-# --------------------------- autenticação -----------------------------------
-
-USERNAME_RE = re.compile(r"[A-Za-z0-9_]{3,30}")
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-
-
-@app.post("/api/register")
-def api_register():
-    data = request.get_json(force=True, silent=True) or {}
-    username = str(data.get("username", "")).strip()
-    password = str(data.get("password", ""))
-    if not USERNAME_RE.fullmatch(username):
-        return jsonify(error="Usuário: 3 a 30 caracteres (letras, números e _)."), 400
-    if not 4 <= len(password) <= 100:
-        return jsonify(error="Senha deve ter entre 4 e 100 caracteres."), 400
-    try:
-        with db() as conn, conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO users (username, password_hash) VALUES (%s,%s)"
-                " RETURNING id",
-                (username, generate_password_hash(password)),
-            )
-            uid = cur.fetchone()[0]
-    except psycopg2.errors.UniqueViolation:
-        return jsonify(error="Esse nome de usuário já está em uso."), 409
-    session.clear()
-    session["uid"] = uid
-    return jsonify(id=uid, username=username), 201
-
-
-@app.post("/api/login")
-def api_login():
-    data = request.get_json(force=True, silent=True) or {}
-    username = str(data.get("username", "")).strip()
-    password = str(data.get("password", ""))
-    with db() as conn, conn.cursor() as cur:
-        cur.execute("SELECT id, password_hash FROM users WHERE username=%s",
-                    (username,))
-        row = cur.fetchone()
-    # Mensagem genérica: não revelamos se o usuário existe ou se a senha falhou
-    if row is None or not check_password_hash(row[1], password):
-        return jsonify(error="Usuário ou senha incorretos."), 401
-    session.clear()
-    session["uid"] = row[0]
-    return jsonify(id=row[0], username=username)
-
-
-@app.post("/api/logout")
-def api_logout():
-    session.clear()
-    return jsonify(ok=True)
-
-
-@app.get("/api/me")
-def api_me():
-    return jsonify(user=current_user())
+# --------------------------- rotas ------------------------------------
 
 
 class TooManyOps(Exception):

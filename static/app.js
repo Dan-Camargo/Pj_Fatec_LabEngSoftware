@@ -979,11 +979,9 @@ const Auth = {
   },
 };
 
-document.addEventListener("DOMContentLoaded", () => {
-  const btnLogin = $("#overlay-btn-login");
-  const btnRegister = $("#overlay-btn-register");
-  if (btnLogin) btnLogin.onclick = () => Auth.submit("/api/login", "Bem-vindo(a) de volta!");
-  if (btnRegister) btnRegister.onclick = () => Auth.submit("/api/register", "Conta criada — você já está logado!");
+   document.addEventListener("DOMContentLoaded", () => {
+   const btnLogin = $("#overlay-btn-login");
+   if (btnLogin) btnLogin.onclick = () => Auth.submit("/api/login", "Bem-vindo(a) de volta!");
 
   // Modal de professor: salvar, cancelar e fechar ao clicar fora
   $("#btn-prof-novo").addEventListener("click", () => Professores.open(null));
