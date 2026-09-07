@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#000066">
 <title>AlgoViz — Visualizador de Algoritmos</title>
-<link rel="stylesheet" href="/static/style.css?v=2009">
+<link rel="stylesheet" href="/static/style.css?v=2025">
 </head>
 <body>
 <!-- =========================== TELA DE LOGIN =========================== -->
@@ -14,7 +14,7 @@
     <div class="win-title">:: AlgoViz — Acesso ao Sistema ::</div>
     <div class="login-content">
       <div class="brand"><h1>:: Algo<span>Viz</span> ::</h1></div>
-      <p class="login-desc">Entre com sua conta ou crie um novo registro para acessar o visualizador de algoritmos.</p>
+      <p class="login-desc">Entre com seu usuário e senha para acessar o visualizador de algoritmos.</p>
       <label>Usuário
         <input id="overlay-user" type="text" placeholder="usuário" maxlength="30" autocomplete="username">
       </label>
@@ -23,7 +23,6 @@
       </label>
       <div class="btn-row">
         <button id="overlay-btn-login" class="primary">Entrar ▶</button>
-        <button id="overlay-btn-register" class="ghost">Criar conta</button>
       </div>
     </div>
   </div>
@@ -278,8 +277,9 @@
 </section>
 
 </main>
-<script src="/static/app.js?v=2009"></script>
+<script src="/static/app.js?v=2025"></script>
 <!-- ===================== MODAL DE CADASTRO DE PROFESSOR ================= -->
+<!-- alterado por leticia 05092026 -->
 <div id="prof-modal" class="login-overlay hidden">
   <div class="login-window">
     <div class="win-title">:: Cadastro de Professor ::</div>
@@ -296,6 +296,15 @@
       <label>Especialidade
         <input id="prof-especialidade" type="text" maxlength="80" placeholder="ex.: Matemática">
       </label>
+
+      <!-- Novos campos de acesso para virar usuário do sistema -->
+      <label>Usuário de Acesso
+        <input id="prof-user" type="text" maxlength="30" placeholder="ex: prof_carlos">
+      </label>
+      <label>Senha Provisória
+        <input id="prof-pass" type="password" maxlength="100" placeholder="mínimo 4 caracteres">
+      </label>
+
       <div class="btn-row">
         <button id="btn-prof-salvar" class="primary">Salvar ▶</button>
         <button id="btn-prof-cancelar" class="ghost">Cancelar</button>
