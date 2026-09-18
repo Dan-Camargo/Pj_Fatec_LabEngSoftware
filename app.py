@@ -71,7 +71,6 @@ def current_user():
 # --------------------------- autenticação -----------------------------------
 
 USERNAME_RE = re.compile(r"[A-Za-z0-9_]{3,30}")
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 @app.post("/api/register")
@@ -751,126 +750,6 @@ def api_delete_dataset(did):
     return jsonify(ok=True)
 
 
-# --------------------------- CRUD de professores --------------------------
-
-def _str(v):
-    return str(v).strip()
-
-
-def _parse_professor(data):
-    """Valida e normaliza os campos de um professor vindo do front-end."""
-    nome = _str(data.get("nome", ""))
-    email = _str(data.get("email") or "")
-    telefone = _str(data.get("telefone") or "")
-    especialidade = _str(data.get("especialidade") or "")
-    if not (1 <= len(nome) <= 120):
-        raise ValueError("Nome deve ter de 1 a 120 caracteres.")
-    if email and (len(email) > 120 or not EMAIL_RE.fullmatch(email)):
-        raise ValueError("E-mail inválido.")
-    if len(telefone) > 30:
-        raise ValueError("Telefone deve ter no máximo 30 caracteres.")
-    if len(especialidade) > 80:
-        raise ValueError("Especialidade deve ter no máximo 80 caracteres.")
-    return nome, email or None, telefone or None, especialidade or None
-
-
-@app.get("/api/professores")
-def api_list_professores():
-    with db() as conn, conn.cursor() as cur:
-        cur.execute(
-            "SELECT id, nome, email, telefone, especialidade, criado_em"
-            " FROM professor ORDER BY nome")
-        rows = cur.fetchall()
-    out = [{"id": r[0], "nome": r[1], "email": r[2], "telefone": r[3],
-            "especialidade": r[4], "criado_em": r[5].isoformat()} for r in rows]
-    return jsonify(out)
-
-#alterado por leticia 05092026,tentando criar usuario e senha para cada professor, para que ele possa logar no sistema e ver suas tarefas
-# alterado por leticia 05092026, criando usuario e professor na mesma transacao
-@app.post("/api/professores")
-def api_create_professor():
-    data = request.get_json(force=True, silent=True) or {}
-    try:
-        nome, email, telefone, especialidade = _parse_professor(data)
-    except ValueError as e:
-        return jsonify(error=str(e)), 400
-
-    # Define o login do usuário
-    default_user = email.split("@")[0] if email else nome.lower().replace(" ", "_")[:30]
-    username = str(data.get("username", "")).strip() or default_user
-    password = str(data.get("password", ""))
-
-    if not USERNAME_RE.fullmatch(username):
-        return jsonify(error="Usuário inválido: use de 3 a 30 caracteres (letras, números e _)."), 400
-    if not (4 <= len(password) <= 100):
-        return jsonify(error="A senha deve ter entre 4 e 100 caracteres."), 400
-
-    try:
-        with db() as conn:
-            with conn.cursor() as cur:
-                # 1. Cria o login na tabela users com a coluna role
-                cur.execute(
-                    "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s) RETURNING id",
-                    (username, generate_password_hash(password), "Professor"),
-                )
-                user_id = cur.fetchone()[0]
-
-                # 2. Cria o registro na tabela professor
-                cur.execute(
-                    "INSERT INTO professor (nome, email, telefone, especialidade,login_id) VALUES (%s, %s, %s, %s,%s) RETURNING id",
-                    (nome, email, telefone, especialidade, user_id),
-                )
-                pid = cur.fetchone()[0]
-
-    except psycopg2.IntegrityError as e:
-        msg = str(e).lower()
-        if "users" in msg and "username" in msg:
-            return jsonify(error=f"O nome de usuário '{username}' já existe. Escolha outro."), 409
-        if "professor" in msg and "email" in msg:
-            return jsonify(error="Já existe um professor cadastrado com esse e-mail."), 409
-        return jsonify(error="Violação de dados duplicados no banco."), 409
-
-    except Exception as e:
-        # Pega qualquer outro erro e devolve o texto no alerta em vez de quebrar em 500
-        return jsonify(error=f"Erro interno: {str(e)}"), 400
-
-    return jsonify(id=pid, user_id=user_id, nome=nome, username=username, role="Professor"), 201
-
-
-@app.put("/api/professores/<int:pid>")
-def api_update_professor(pid):
-    data = request.get_json(force=True, silent=True) or {}
-    try:
-        nome, email, telefone, especialidade = _parse_professor(data)
-    except ValueError as e:
-        return jsonify(error=str(e)), 400
-    try:
-        with db() as conn, conn.cursor() as cur:
-            cur.execute(
-                "UPDATE professor SET nome=%s, email=%s, telefone=%s,"
-                " especialidade=%s WHERE id=%s",
-                (nome, email, telefone, especialidade, pid))
-            if cur.rowcount == 0:
-                return jsonify(error="Professor não encontrado."), 404
-    except psycopg2.errors.UniqueViolation:
-        return jsonify(error="Já existe um professor com esse e-mail."), 409
-    return jsonify(ok=True)
-
-
-@app.delete("/api/professores/<int:pid>")
-def api_delete_professor(pid):
-    with db() as conn, conn.cursor() as cur:
-        cur.execute("SELECT login_id FROM professor WHERE id=%s", (pid,))
-        user_id = cur.fetchone()[0]
-        cur.execute("DELETE FROM professor WHERE id=%s", (pid,))
-        if cur.rowcount == 0:
-          return jsonify(error="Professor não encontrado."), 404
-        cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
-        if cur.rowcount == 0:
-            return jsonify(error="Professor não encontrado."), 404    
-    return jsonify(ok=True)
-
-
 # Aplica as migrações pendentes (001_initial, 002_leticia_roles, ...) antes de
 # servir. Também funciona como passo separado do deploy: python migrate.py
 run_migrations()
@@ -885,4 +764,5 @@ with db() as _conn, _conn.cursor() as _cur:
 
 if __name__ == "__main__":
     from waitress import serve
-    serve(app, host="0.0.0.0", port=8000, threads=4)
+    port = int(os.environ.get("PORT", "8000"))
+    serve(app, host="0.0.0.0", port=port, threads=4)

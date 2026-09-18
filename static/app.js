@@ -59,7 +59,6 @@ $$("#tabs button").forEach(btn =>
 
     // Abas que buscam dados sob demanda carregam na primeira abertura
     if (btn.dataset.tab === "history") History.load();
-    if (btn.dataset.tab === "professores") Professores.load();
   })
 );
 
@@ -803,132 +802,6 @@ const History = {
 $("#btn-refresh-hist").addEventListener("click", () => History.load());
 $("#hist-scope").addEventListener("change", () => History.load());
 
-/* ============================== PROFESSORES =============================
-   CRUD completo da entidade "professor" da plataforma de ensino.
-   Lista em tabela, cria/edita num modal réplica do visual Windows 98.
-   ====================================================================== */
-const Professores = {
-  items: [],
-  editId: null,
-
-  async load() {
-    try {
-      this.items = await api("/api/professores");
-    } catch (e) { toast(e.message, true); }
-    this.render();
-  },
-
-  render() {
-    const tbody = $("#tbl-professores");
-    tbody.innerHTML = "";
-    if (!this.items.length) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = '<td colspan="6">Nenhum professor cadastrado ainda.</td>';
-      tbody.appendChild(tr);
-      return;
-    }
-    this.items.forEach(p => {
-      const tr = document.createElement("tr");
-      tr.innerHTML =
-        `<td>${p.id}</td>` +
-        `<td><b>${p.nome}</b></td>` +
-        `<td>${p.email || "—"}</td>` +
-        `<td>${p.telefone || "—"}</td>` +
-        `<td>${p.especialidade || "—"}</td>` +
-        `<td>` +
-        `<button class="ghost small" data-edit="${p.id}">Editar</button> ` +
-        `<button class="ghost small" data-del="${p.id}">Excluir</button>` +
-        `</td>`;
-      tbody.appendChild(tr);
-    });
-  },
-
-open(id) {
-    this.editId = id || null;
-    const p = id ? this.items.find(x => x.id === id) : null;
-    $("#prof-nome").value = p ? p.nome : "";
-    $("#prof-email").value = p && p.email ? p.email : "";
-    $("#prof-telefone").value = p && p.telefone ? p.telefone : "";
-    $("#prof-especialidade").value = p && p.especialidade ? p.especialidade : "";
-
-    // Campos de login do novo usuário
-    const userInput = $("#prof-user");
-    const passInput = $("#prof-pass");
-    if (userInput && passInput) {
-      userInput.value = "";
-      passInput.value = "";
-      // Ao editar um professor existente, oculta campos de credenciais
-      userInput.closest("label").style.display = id ? "none" : "block";
-      passInput.closest("label").style.display = id ? "none" : "block";
-    }
-
-    $("#prof-modal").classList.remove("hidden");
-    $("#prof-nome").focus();
-  },
-
-  close() {
-    $("#prof-modal").classList.add("hidden");
-    this.editId = null;
-    const userInput = $("#prof-user");
-    const passInput = $("#prof-pass");
-    if (userInput && passInput) {
-      userInput.value = "";
-      passInput.value = "";
-    }
-  },
-
-  async submit() {
-    const payload = {
-      nome: $("#prof-nome").value.trim(),
-      email: $("#prof-email").value.trim(),
-      telefone: $("#prof-telefone").value.trim(),
-      especialidade: $("#prof-especialidade").value.trim(),
-    };
-
-    if (!payload.nome) { toast("Informe o nome do professor.", true); return; }
-
-    let url = "/api/professores", method = "POST", okMsg = "Professor cadastrado como usuário!";
-    if (this.editId) {
-      url += "/" + this.editId;
-      method = "PUT";
-      okMsg = "Professor atualizado!";
-    } else {
-      // Captura usuário e senha apenas na criação
-      payload.username = ($("#prof-user")?.value || "").trim();
-      payload.password = $("#prof-pass")?.value || "";
-
-      if (!payload.password || payload.password.length < 4) {
-        toast("A senha inicial deve ter no mínimo 4 caracteres.", true);
-        return;
-      }
-    }
-
-    try {
-      await api(url, { method, body: JSON.stringify(payload) });
-      toast(okMsg);
-      this.close();
-      await this.load();
-    } catch (e) { toast(e.message, true); }
-  },
-
-  async remove(id) {
-    const p = this.items.find(x => x.id === id);
-    if (!confirm(`Excluir o professor "${p ? p.nome : id}"?`)) return;
-    try {
-      await api("/api/professores/" + id, { method: "DELETE" });
-      toast("Professor excluído.");
-      await this.load();
-    } catch (e) { toast(e.message, true); }
-  },
-};
-
-$("#tbl-professores").addEventListener("click", e => {
-  const ed = e.target.closest("[data-edit]");
-  const del = e.target.closest("[data-del]");
-  if (ed) Professores.open(+ed.dataset.edit);
-  else if (del) Professores.remove(+del.dataset.del);
-});
-
 /* ============================= AUTENTICAÇÃO =============================
    Login simples com cookie de sessão assinado pelo Flask.
    Senhas nunca trafegam de volta: o back-end guarda apenas o hash PBKDF2.
@@ -984,14 +857,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnRegister = $("#overlay-btn-register");
   if (btnLogin) btnLogin.onclick = () => Auth.submit("/api/login", "Bem-vindo(a) de volta!");
   if (btnRegister) btnRegister.onclick = () => Auth.submit("/api/register", "Conta criada — você já está logado!");
-
-  // Modal de professor: salvar, cancelar e fechar ao clicar fora
-  $("#btn-prof-novo").addEventListener("click", () => Professores.open(null));
-  $("#btn-prof-salvar").addEventListener("click", () => Professores.submit());
-  $("#btn-prof-cancelar").addEventListener("click", () => Professores.close());
-  $("#prof-modal").addEventListener("click", e => {
-    if (e.target === e.currentTarget) Professores.close();
-  });
 });
 
 /* ================================== boot ================================ */
@@ -1018,7 +883,6 @@ document.addEventListener("DOMContentLoaded", () => {
   Race.newVector();
   Datasets.refresh();
   Auth.refresh();          // descobre se já há sessão ativa e monta o cabeçalho
-  Professores.load();
 
   // Contador de visitas estilo 2002 (com dados honestos: nº de execuções
   // registradas no PostgreSQL). O elemento só existe se o rodapé existir.
