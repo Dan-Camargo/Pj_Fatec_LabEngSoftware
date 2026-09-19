@@ -101,7 +101,7 @@ header {
 }
 
 /* -------------------------------- layout ------------------------------- */
-main { max-width: 1450px; margin: 0 auto; padding: 18px 24px 40px; }
+main { max-width: 1450px; margin: 0 auto; padding: 18px 24px 40px; position: relative; z-index: 1; }
 .tab { display: none; }
 .tab.active { display: grid; grid-template-columns: 340px 1fr; gap: 18px; align-items: start; }
 #tab-history.active, #tab-community.active { grid-template-columns: 1fr; }
@@ -110,16 +110,28 @@ main { max-width: 1450px; margin: 0 auto; padding: 18px 24px 40px; }
   background: rgba(255, 255, 255, 0.45);
   -webkit-backdrop-filter: blur(18px) saturate(1.35);
   backdrop-filter: blur(18px) saturate(1.35);
-  border: 1px solid rgba(90, 160, 215, 0.6);
+  border: 1px solid rgba(150, 205, 245, 0.85);
   border-radius: 16px;
   padding: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 18px rgba(20, 70, 120, 0.16),
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4),
+              0 4px 18px rgba(20, 70, 120, 0.16),
               0 20px 44px rgba(20, 70, 120, 0.18),
               inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
+/* título dos painéis de configuração: cabeçalho arredondado interno, para
+   a moldura do painel ficar visível no topo (não sangra até a borda). */
+.panel > h2 {
+  margin: 0 0 14px;
+  background: linear-gradient(180deg, #9cd0f8, #4b90e8 45%, #2e6fd2);
+  border: 1px solid rgba(28, 82, 150, 0.6);
+  border-bottom-color: rgba(22, 66, 124, 0.85);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6),
+              0 1px 2px rgba(20, 70, 120, 0.15);
+}
 .panel > h2, .panel > h3 {
-  margin: -16px -16px 14px -16px;      /* barra de título colada na borda */
+  margin: 0 0 14px;
   background: linear-gradient(180deg, #8fc0f2, #3a7de0 45%, #2965c6);
   color: #FFFFFF;
   font-size: 16px;
@@ -145,7 +157,7 @@ label input[type=text], label input[type=number], label input[type=password],
 label textarea, details input[type=text], select, #target {
   width: 100%;
   background: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(80, 150, 210, 0.6);
+  border: 1px solid rgba(84, 152, 212, 0.85);
   border-radius: 10px;
   font-family: inherit;
   font-size: 14px;
@@ -545,7 +557,8 @@ button.small { padding: 5px 12px; font-size: 13px; border-radius: 10px; }
   main { padding: 10px 10px 28px; }
 
   .panel { padding: 10px; border-radius: 12px; }
-  .panel > h2, .panel > h3 { margin: -10px -10px 12px; padding: 8px 12px; font-size: 15px; }
+  .panel > h2, .panel > h3 { margin: 0 0 10px; padding: 8px 12px; font-size: 15px; }
+  .panel > h2 { border-radius: 10px; }
 
   .feed-panel .hist-head { margin: -10px -10px 14px; padding: 8px 10px; }
   .feed-panel .hist-head .btn-row { width: 100%; justify-content: flex-end; }
@@ -780,4 +793,123 @@ button.small { padding: 5px 12px; font-size: 13px; border-radius: 10px; }
   padding: 7px 10px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(238, 248, 253, 0.55));
   font-size: 14px;
+}
+/* ======================== AQUÁRIO FRUTIGER AERO ======================= */
+/* Peixes decorativos boiando no fundo. Ficam atrás do conteúdo (main z-1)
+   e aparecem suavizados atrás dos painéis de vidro. Pura cenografia. */
+#fish-tank {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.fish {
+  position: absolute;
+  left: 0;
+  opacity: 0.6;
+  filter: drop-shadow(0 2px 4px rgba(10, 60, 110, 0.28));
+}
+
+/* transporte horizontal (nado) */
+.f1 { top: 70%; left: 10%; animation-play-state: paused; }
+.f2 { top: 58%; animation: swim-right 40s linear infinite; animation-delay: -8s; }
+.f3 { top: 18%; animation: swim-left 34s linear infinite; animation-delay: -16s; }
+.f4 { top: 40%; animation: swim-right 30s linear infinite; animation-delay: -5s; }
+.f5 { top: 76%; left: 74%; animation-play-state: paused; }
+.f6 { top: 10%; animation: swim-left 48s linear infinite; animation-delay: -22s; }
+.f7 { top: 28%; animation: swim-right 60s linear infinite; animation-delay: -30s; }
+
+/* balanço vertical (nadadeira natural) */
+.bob {
+  animation: bob 7s ease-in-out infinite;
+  transform-origin: 50% 50%;
+}
+.f1 .bob { animation-duration: 5.5s; animation-delay: -2s; }
+.f3 .bob { animation-duration: 6.5s; animation-delay: -4s; }
+.f4 .bob { animation-duration: 8s; animation-delay: -1s; }
+.f5 .bob { animation-duration: 4.5s; animation-delay: -3s; }
+.f6 .bob { animation-duration: 7s; animation-delay: -5s; }
+
+/* corpo do peixe, em unidades "em" (a escala muda pelo font-size) */
+.in {
+  position: relative;
+  width: 0;
+  height: 0;
+  font-size: 10px;
+}
+.in .body {
+  position: absolute;
+  top: -1.7em;
+  left: 0;
+  width: 5.6em;
+  height: 3.4em;
+  border-radius: 58% 58% 58% 58% / 45% 45% 55% 55%;
+  background: linear-gradient(180deg, var(--fc1), var(--fc2) 70%);
+  box-shadow: inset 0 0.3em 0.6em rgba(255, 255, 255, 0.55),
+              inset 0 -0.4em 0.8em rgba(0, 40, 80, 0.22);
+}
+.in .tail {
+  position: absolute;
+  left: -1.5em;
+  top: -0.9em;
+  width: 0;
+  height: 0;
+  border-top: 0.9em solid transparent;
+  border-bottom: 0.9em solid transparent;
+  border-right: 1.6em solid var(--fc1);
+  filter: drop-shadow(0 0.05em 0 rgba(0, 40, 80, 0.2));
+}
+.in .fin {
+  position: absolute;
+  top: -1.1em;
+  right: 0.8em;
+  width: 0;
+  height: 0;
+  border-left: 0.7em solid transparent;
+  border-right: 0.7em solid transparent;
+  border-bottom: 1.2em solid var(--fc2);
+  opacity: 0.85;
+}
+.in .eye {
+  position: absolute;
+  top: 1em;
+  right: 0.9em;
+  width: 0.8em;
+  height: 1em;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: inset 0.28em 0 0.2em rgba(10, 50, 90, 0.62);
+}
+.in.flip { transform: scaleX(-1); }
+
+/* tamanhos (escala via font-size) */
+.s-s { font-size: 7px; }
+.s-m { font-size: 10px; }
+.s-l { font-size: 13px; }
+.s-xl { font-size: 17px; }
+
+/* cores vindas das referências (koi laranja, dourado, azul-céu, água, azul) */
+.b-koi  { --fc1: #ffb25e; --fc2: #d9712f; }
+.b-gold { --fc1: #ffe27a; --fc2: #d9a52e; }
+.b-cyan { --fc1: #8ff0ff; --fc2: #2fb8e0; }
+.b-teal { --fc1: #8ff0c8; --fc2: #2bbd8f; }
+.b-blue { --fc1: #8fbcff; --fc2: #3a63d8; }
+
+@keyframes swim-right {
+  from { transform: translateX(-160px); }
+  to   { transform: translateX(calc(100vw + 240px)); }
+}
+@keyframes swim-left {
+  from { transform: translateX(calc(100vw + 240px)); }
+  to   { transform: translateX(-160px); }
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%      { transform: translateY(-14px) rotate(3deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #fish-tank { display: none; }
 }
