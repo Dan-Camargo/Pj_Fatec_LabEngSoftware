@@ -1222,18 +1222,20 @@ function fishPickImage() {
 
 function fishRand(a, b) { return a + Math.random() * (b - a); }
 
-function spawnFish(tank) {
-  const isBobber = Math.random() < 0.28;
-  const dir = Math.random() < 0.5 ? "swim-r" : "swim-l";
-  const dur = fishRand(32, 70);
+// Velocidade gradual e suave: cada peixe tem uma velocidade-alvo sorteada e a
+// velocidade real converge devagar até ela (lerp), re-sorteando o alvo a cada
+// poucos segundos — o nado acelera/desacelera naturalmente, sem degraus.
+const fishNextRoll = new WeakMap();
+
+function fishTargetSpeed() { return fishRand(16, 64); }
+
+function spawnFish(tank, isBobber) {
+  const dir = Math.random() < 0.5 ? 1 : -1;   // +1 nada p/ direita, -1 p/ esquerda
 
   const fish = document.createElement("div");
-  fish.className = "fish" + (isBobber ? "" : " " + dir);
+  fish.className = "fish";
   fish.style.setProperty("--top", fishRand(4, 86).toFixed(1) + "%");
-  fish.style.setProperty("--dur", dur.toFixed(1) + "s");
-  fish.style.setProperty("--delay", "-" + fishRand(0, dur).toFixed(1) + "s");
   fish.style.setProperty("--op", fishRand(0.35, 0.75).toFixed(2));
-  if (isBobber) fish.style.left = fishRand(3, 90).toFixed(1) + "%";
 
   const bob = document.createElement("div");
   bob.className = "bob";
@@ -1241,8 +1243,7 @@ function spawnFish(tank) {
   bob.style.setProperty("--bdelay", "-" + fishRand(0, 8).toFixed(1) + "s");
 
   const inner = document.createElement("div");
-  const flip = isBobber ? Math.random() < 0.5 : dir === "swim-l";
-  inner.className = "in" + (flip ? " flip" : "");
+  inner.className = "in" + ((isBobber ? Math.random() < 0.5 : dir === -1) ? " flip" : "");
   inner.style.setProperty("--blur", fishRand(0.2, 1.2).toFixed(2) + "px");
 
   const img = document.createElement("img");
@@ -1254,6 +1255,66 @@ function spawnFish(tank) {
   bob.appendChild(inner);
   fish.appendChild(bob);
   tank.appendChild(fish);
+
+  if (isBobber) {                // paradinho: só balança no lugar
+    fish.style.left = fishRand(3, 90).toFixed(1) + "%";
+    return null;
+  }
+
+  const margin = 40 + parseInt(img.style.width, 10);
+  const target = fishTargetSpeed() * dir;
+  const swimmer = {
+    el: fish, img, dir, margin,
+    x: fishRand(-margin, document.documentElement.clientWidth + margin),
+    v: target * fishRand(0.4, 1),   // começa em qualquer ritmo
+    target,
+  };
+  fishNextRoll.set(fish, performance.now() + fishRand(3, 10) * 1000);
+  return swimmer;
+}
+
+function initAquarium() {
+  const tank = $("#fish-tank");
+  if (!tank) return;
+
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const swimmers = [];
+  for (let i = 0; i < FISH_COUNT; i++) {
+    const s = spawnFish(tank, reduced ? true : Math.random() < 0.28);
+    if (s) swimmers.push(s);
+  }
+  if (reduced || !swimmers.length) return;
+
+  let last = performance.now();
+
+  const step = now => {
+    const dt = Math.min(0.1, (now - last) / 1000);   // dt em segundos (cap p/ abas inertes)
+    last = now;
+    const vw = document.documentElement.clientWidth;
+
+    for (const s of swimmers) {
+      // re-sorteia o alvo de velocidade (e às vezes o rumo), sempre suave
+      if (now > fishNextRoll.get(s.el)) {
+        fishNextRoll.set(s.el, now + fishRand(6, 16) * 1000);
+        if (Math.random() < 0.18) s.dir = -s.dir;
+        s.target = fishTargetSpeed() * s.dir;
+      }
+      s.v += (s.target - s.v) * Math.min(1, dt * 0.25);   // converge devagar até o alvo
+      s.x += s.v * dt;
+
+      // saiu da tela → reaparece do outro lado com topo e rumo novos
+      if (s.x > vw + s.margin || s.x < -s.margin) {
+        s.x = s.x > vw ? -s.margin : vw + s.margin;
+        if (Math.random() < 0.18) s.dir = -s.dir;
+        s.target = fishTargetSpeed() * s.dir;
+        s.el.style.setProperty("--top", fishRand(4, 86).toFixed(1) + "%");
+      }
+      s.el.querySelector(".in").classList.toggle("flip", s.dir === -1);
+      s.el.style.transform = `translate3d(${s.x.toFixed(1)}px, 0, 0)`;
+    }
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }
 
 /* ================================== boot ================================ */
@@ -1282,10 +1343,7 @@ function spawnFish(tank) {
   Auth.refresh();          // descobre se já há sessão ativa e monta o cabeçalho
 
   // Popula o aquário aleatório ao fundo
-  const tank = $("#fish-tank");
-  if (tank) {
-    for (let i = 0; i < FISH_COUNT; i++) spawnFish(tank);
-  }
+  initAquarium();
 
   // Contador de visitas estilo 2002 (com dados honestos: nº de execuções
   // registradas no PostgreSQL). O elemento só existe se o rodapé existir.

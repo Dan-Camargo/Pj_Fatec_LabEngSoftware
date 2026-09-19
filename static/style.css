@@ -812,8 +812,6 @@ button.small { padding: 5px 12px; font-size: 13px; border-radius: 10px; }
   opacity: var(--op, 0.6);
   filter: drop-shadow(0 2px 4px rgba(10, 60, 110, 0.28));
 }
-.fish.swim-r { animation: swim-right var(--dur, 40s) linear infinite; animation-delay: var(--delay, 0s); }
-.fish.swim-l { animation: swim-left var(--dur, 40s) linear infinite; animation-delay: var(--delay, 0s); }
 
 /* balanço vertical (nadadeira natural) */
 .bob {
@@ -838,14 +836,6 @@ button.small { padding: 5px 12px; font-size: 13px; border-radius: 10px; }
 .in.flip { transform: scaleX(-1); }
 .in img { width: var(--size, 160px); }
 
-@keyframes swim-right {
-  from { transform: translateX(-160px); }
-  to   { transform: translateX(calc(100vw + 240px)); }
-}
-@keyframes swim-left {
-  from { transform: translateX(calc(100vw + 240px)); }
-  to   { transform: translateX(-160px); }
-}
 @keyframes bob {
   0%, 100% { transform: translateY(0) rotate(-2deg); }
   50%      { transform: translateY(-14px) rotate(3deg); }
