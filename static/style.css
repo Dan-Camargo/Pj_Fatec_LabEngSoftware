@@ -13,11 +13,17 @@ body {
   color: #1c3a52;
   font-family: "Lucida Grande", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   font-size: 15px;
+  /* "desktop" Frutiger Aero: o wallpaper aquático (veio de sources/) por baixo,
+     e um véu claro translúcido por cima para manter a leitura confortável.
+     Os painéis de vidro embaçam e revelam a água através deles. */
   background:
-    radial-gradient(1200px 500px at 12% -5%, rgba(255,255,255,0.55), transparent 60%),
-    radial-gradient(900px 420px at 88% 4%, rgba(170,230,255,0.6), transparent 55%),
-    linear-gradient(180deg, #8fc8ef 0%, #bfe6f8 38%, #e2f6fb 68%, #e8f9f0 100%);
-  background-attachment: fixed;
+    radial-gradient(1200px 500px at 12% -5%, rgba(255, 255, 255, 0.5), transparent 60%),
+    radial-gradient(900px 420px at 88% 4%, rgba(215, 242, 255, 0.55), transparent 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%,
+                            rgba(205, 236, 252, 0.42) 40%,
+                            rgba(228, 247, 250, 0.52) 75%,
+                            rgba(242, 255, 250, 0.58) 100%),
+    url("/static/assets/bg-aqua.jpg") center 30% / cover no-repeat fixed;
   min-height: 100vh;
 }
 
@@ -433,7 +439,7 @@ button.small { padding: 5px 12px; font-size: 13px; border-radius: 10px; }
 
 /* ======================== MOBILE (<= 600px) ======================== */
 @media (max-width: 600px) {
-  body { font-size: 14px; }
+  body { font-size: 14px; background-attachment: scroll; }
 
   header { padding: 8px 10px; }
   .brand h1 { font-size: 21px; margin-bottom: 6px; }
