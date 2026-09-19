@@ -110,13 +110,13 @@ main { max-width: 1450px; margin: 0 auto; padding: 18px 24px 40px; position: rel
   background: rgba(255, 255, 255, 0.45);
   -webkit-backdrop-filter: blur(18px) saturate(1.35);
   backdrop-filter: blur(18px) saturate(1.35);
-  border: 1px solid rgba(150, 205, 245, 0.85);
+  border: 1px solid rgba(110, 168, 216, 0.8);
   border-radius: 16px;
   padding: 16px;
   overflow: hidden;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4),
-              0 4px 18px rgba(20, 70, 120, 0.16),
-              0 20px 44px rgba(20, 70, 120, 0.18),
+  box-shadow: 0 0 0 1px rgba(96, 152, 204, 0.3),
+              0 4px 18px rgba(24, 84, 138, 0.22),
+              0 22px 46px rgba(24, 84, 138, 0.26),
               inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 /* título dos painéis de configuração: cabeçalho arredondado interno, para
