@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#000066">
 <title>AlgoViz — Visualizador de Algoritmos</title>
-<link rel="stylesheet" href="/static/style.css?v=2008">
+<link rel="stylesheet" href="/static/style.css?v=2019">
 </head>
 <body>
 <!-- =========================== TELA DE LOGIN =========================== -->
@@ -32,7 +32,8 @@
 <header>
   <div class="brand"><h1>:: Algo<span>Viz</span> ::</h1></div>
   <nav id="tabs">
-    <button data-tab="sorting" class="active">Ordenação</button>
+    <button data-tab="community" class="active">Comunidade</button>
+    <button data-tab="sorting">Ordenação</button>
     <button data-tab="race">Corrida</button>
     <button data-tab="search">Busca Binária</button>
     <button data-tab="path">Grafos · Caminhos</button>
@@ -46,7 +47,7 @@
 <main>
 
 <!-- ============================ ORDENAÇÃO ============================ -->
-<section id="tab-sorting" class="tab active">
+<section id="tab-sorting" class="tab">
   <aside class="panel controls">
     <h2>Controles</h2>
     <label>Algoritmo
@@ -241,8 +242,76 @@
   </div>
 </section>
 
+<!-- ============================== COMUNIDADE ========================== -->
+<section id="tab-community" class="tab active">
+  <div class="panel feed-panel">
+    <div class="hist-head">
+      <button id="feed-back" class="ghost hidden">← Voltar</button>
+      <h2 id="feed-title">Comunidade</h2>
+      <div class="btn-row" id="feed-admin-actions">
+        <button id="btn-post-novo" class="primary small">✍ Nova postagem</button>
+        <button id="btn-admin-painel" class="ghost small">Gerenciar admins</button>
+      </div>
+    </div>
+    <div id="feed-content"></div>
+  </div>
+</section>
+
 </main>
-<script src="/static/app.js?v=2008"></script>
+
+<!-- ========================== MODAL NOVA POSTAGEM ====================== -->
+<div id="post-modal" class="login-overlay hidden">
+  <div class="login-window">
+    <div class="win-title">:: Nova postagem ::</div>
+    <div class="login-content">
+      <label>Título
+        <input id="post-title" type="text" maxlength="120" placeholder="título do post" style="width:100%">
+      </label>
+      <label>Conteúdo
+        <textarea id="post-body" rows="8" maxlength="5000" placeholder="escreva aqui..."></textarea>
+      </label>
+      <div class="btn-row">
+        <button id="btn-post-salvar" class="primary">Publicar ▶</button>
+        <button id="btn-post-cancelar" class="ghost">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================= MODAL GERENCIAR ADMINS ==================== -->
+<div id="admin-modal" class="login-overlay hidden">
+  <div class="login-window big">
+    <div class="win-title">:: Gerenciar administradores ::</div>
+    <div class="login-content">
+      <h3 class="feed-h3">Criar novo admin</h3>
+      <label>Usuário
+        <input id="adm-user" type="text" maxlength="30" placeholder="ex: admin2">
+      </label>
+      <label>Senha
+        <input id="adm-pass" type="password" maxlength="100" placeholder="mínimo 4 caracteres">
+      </label>
+      <button id="btn-adm-criar" class="primary small">Criar admin ▶</button>
+      <hr>
+      <h3 class="feed-h3">Promover usuário existente</h3>
+      <label>Buscar usuário
+        <input id="adm-search" type="text" maxlength="30" placeholder="digite um nome de usuário...">
+      </label>
+      <div id="adm-results" class="feed-results"></div>
+      <h3 class="feed-h3">Admins atuais</h3>
+      <ul id="adm-list" class="ds-list"></ul>
+      <div class="btn-row">
+        <button id="btn-adm-fechar" class="ghost">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js?v=2015"></script>
+
+<!-- ====================== AQUÁRIO FRUTIGER AERO ===================== -->
+<!-- Peixes decorativos boiando no fundo; ficam atrás do conteúdo e
+     aparecem borrados/vidrados atrás dos painéis de vidro. -->
+<div id="fish-tank" aria-hidden="true"></div>
 
 </body>
 </html>
