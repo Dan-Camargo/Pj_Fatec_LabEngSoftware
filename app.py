@@ -54,7 +54,7 @@ def db():
 
 
 def current_user():
-    """Devolve {id, username} de quem está logado na sessão, ou None.
+    """Devolve {id, username, role} de quem está logado na sessão, ou None.
 
     O cookie do navegador guarda apenas o id assinado pelo Flask; aqui
     conferimos se esse usuário ainda existe no banco.
@@ -63,9 +63,25 @@ def current_user():
     if not uid:
         return None
     with db() as conn, conn.cursor() as cur:
-        cur.execute("SELECT id, username FROM users WHERE id = %s", (uid,))
+        cur.execute("SELECT id, username, role FROM users WHERE id = %s", (uid,))
         row = cur.fetchone()
-    return {"id": row[0], "username": row[1]} if row else None
+    if row is None:
+        return None
+    return {"id": row[0], "username": row[1], "role": row[2] or "Aluno"}
+
+
+def require_login():
+    user = current_user()
+    if user is None:
+        raise ApiError("Faça login para continuar.", 401)
+    return user
+
+
+def require_admin():
+    user = require_login()
+    if user["role"] != "Admin":
+        raise ApiError("Acesso restrito aos administradores.", 403)
+    return user
 
 
 # --------------------------- autenticação -----------------------------------
@@ -73,28 +89,44 @@ def current_user():
 USERNAME_RE = re.compile(r"[A-Za-z0-9_]{3,30}")
 
 
+def _validate_credentials(username, password):
+    """Valida usuário/senha; levanta ValueError com mensagem amigável."""
+    if not USERNAME_RE.fullmatch(username):
+        raise ValueError(
+            "Usuário: 3 a 30 caracteres (letras, números e _).")
+    if not 4 <= len(password) <= 100:
+        raise ValueError("A senha deve ter entre 4 e 100 caracteres.")
+
+
+def _insert_user(username, password, role="Aluno"):
+    """Valida credenciais e insere usuário com o papel informado.
+
+    Devolve o id criado e NÃO mexe na sessão — quem decide logar é a rota.
+    """
+    _validate_credentials(username, password)
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO users (username, password_hash, role) VALUES (%s,%s,%s)"
+            " RETURNING id",
+            (username, generate_password_hash(password), role),
+        )
+        return cur.fetchone()[0]
+
+
 @app.post("/api/register")
 def api_register():
     data = request.get_json(force=True, silent=True) or {}
     username = str(data.get("username", "")).strip()
     password = str(data.get("password", ""))
-    if not USERNAME_RE.fullmatch(username):
-        return jsonify(error="Usuário: 3 a 30 caracteres (letras, números e _)."), 400
-    if not 4 <= len(password) <= 100:
-        return jsonify(error="Senha deve ter entre 4 e 100 caracteres."), 400
     try:
-        with db() as conn, conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO users (username, password_hash) VALUES (%s,%s)"
-                " RETURNING id",
-                (username, generate_password_hash(password)),
-            )
-            uid = cur.fetchone()[0]
+        uid = _insert_user(username, password)
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
     except psycopg2.errors.UniqueViolation:
         return jsonify(error="Esse nome de usuário já está em uso."), 409
     session.clear()
     session["uid"] = uid
-    return jsonify(id=uid, username=username), 201
+    return jsonify(id=uid, username=username, role="Aluno"), 201
 
 
 @app.post("/api/login")
@@ -103,7 +135,7 @@ def api_login():
     username = str(data.get("username", "")).strip()
     password = str(data.get("password", ""))
     with db() as conn, conn.cursor() as cur:
-        cur.execute("SELECT id, password_hash FROM users WHERE username=%s",
+        cur.execute("SELECT id, password_hash, role FROM users WHERE username=%s",
                     (username,))
         row = cur.fetchone()
     # Mensagem genérica: não revelamos se o usuário existe ou se a senha falhou
@@ -111,7 +143,8 @@ def api_login():
         return jsonify(error="Usuário ou senha incorretos."), 401
     session.clear()
     session["uid"] = row[0]
-    return jsonify(id=row[0], username=username)
+    return jsonify(id=row[0], username=username,
+                   role=(row[2] or "Aluno"))
 
 
 @app.post("/api/logout")
@@ -123,6 +156,14 @@ def api_logout():
 @app.get("/api/me")
 def api_me():
     return jsonify(user=current_user())
+
+
+class ApiError(Exception):
+    """Erro de API com status HTTP próprio (401, 403, 404, ...)."""
+
+    def __init__(self, message, status=400):
+        super().__init__(message)
+        self.status = status
 
 
 class TooManyOps(Exception):
@@ -535,6 +576,11 @@ def on_value_error(e):
     return jsonify(error=str(e)), 400
 
 
+@app.errorhandler(ApiError)
+def on_api_error(e):
+    return jsonify(error=str(e)), e.status
+
+
 @app.get("/")
 def index():
     return send_from_directory(app.static_folder, "index.html")
@@ -750,17 +796,291 @@ def api_delete_dataset(did):
     return jsonify(ok=True)
 
 
+# --------------------------- comunidade / feed ----------------------------
+
+MAX_POST_BODY = 5000
+MAX_COMMENT_BODY = 1000
+
+
+def _post_row(cur, pid, uid):
+    """Monta um dict de post com curtidas/comentários e liked_by_me."""
+    cur.execute(
+        "SELECT p.id, p.title, p.body, p.created_at, p.updated_at,"
+        " u.id, u.username,"
+        " (SELECT count(*) FROM post_likes l WHERE l.post_id = p.id),"
+        " (SELECT count(*) FROM comments c WHERE c.post_id = p.id),"
+        " EXISTS(SELECT 1 FROM post_likes l WHERE l.post_id = p.id"
+        "        AND l.user_id = %s)"
+        " FROM posts p JOIN users u ON u.id = p.author_id"
+        " WHERE p.id = %s",
+        (uid, pid),
+    )
+    row = cur.fetchone()
+    if row is None:
+        raise ApiError("Post não encontrado.", 404)
+    return {
+        "id": row[0], "title": row[1], "body": row[2],
+        "created_at": row[3].isoformat(), "updated_at": row[4].isoformat(),
+        "author": {"id": row[5], "username": row[6]},
+        "like_count": row[7], "comment_count": row[8], "liked_by_me": row[9],
+    }
+
+
+@app.get("/api/posts")
+def api_list_posts():
+    user = require_login()
+    try:
+        limit = min(max(int(request.args.get("limit", 50)), 1), 200)
+    except ValueError:
+        limit = 50
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT p.id, p.title, left(p.body, 200), p.created_at,"
+            " u.id, u.username,"
+            " (SELECT count(*) FROM post_likes l WHERE l.post_id = p.id),"
+            " (SELECT count(*) FROM comments c WHERE c.post_id = p.id),"
+            " EXISTS(SELECT 1 FROM post_likes l WHERE l.post_id = p.id"
+            "        AND l.user_id = %s)"
+            " FROM posts p JOIN users u ON u.id = p.author_id"
+            " ORDER BY p.id DESC LIMIT %s",
+            (user["id"], limit),
+        )
+        rows = cur.fetchall()
+    out = [{"id": r[0], "title": r[1], "excerpt": r[2],
+            "created_at": r[3].isoformat(),
+            "author": {"id": r[4], "username": r[5]},
+            "like_count": r[6], "comment_count": r[7],
+            "liked_by_me": r[8]} for r in rows]
+    return jsonify(posts=out)
+
+
+@app.post("/api/posts")
+def api_create_post():
+    admin = require_admin()
+    data = request.get_json(force=True, silent=True) or {}
+    title = str(data.get("title", "")).strip()
+    body = str(data.get("body", "")).strip()
+    if not (1 <= len(title) <= 120):
+        raise ValueError("Título deve ter de 1 a 120 caracteres.")
+    if not (1 <= len(body) <= MAX_POST_BODY):
+        raise ValueError("Conteúdo deve ter de 1 a %d caracteres." % MAX_POST_BODY)
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO posts (author_id, title, body) VALUES (%s,%s,%s)"
+            " RETURNING id",
+            (admin["id"], title, body),
+        )
+        pid = cur.fetchone()[0]
+    return jsonify(id=pid), 201
+
+
+@app.get("/api/posts/<int:pid>")
+def api_get_post(pid):
+    user = require_login()
+    with db() as conn, conn.cursor() as cur:
+        post = _post_row(cur, pid, user["id"])
+        cur.execute(
+            "SELECT c.id, c.body, c.created_at, u.id, u.username"
+            " FROM comments c JOIN users u ON u.id = c.author_id"
+            " WHERE c.post_id = %s ORDER BY c.id ASC",
+            (pid,),
+        )
+        comments = [{"id": r[0], "body": r[1], "created_at": r[2].isoformat(),
+                     "author": {"id": r[3], "username": r[4]}} for r in cur.fetchall()]
+    post["comments"] = comments
+    return jsonify(post)
+
+
+@app.put("/api/posts/<int:pid>")
+def api_update_post(pid):
+    require_admin()
+    data = request.get_json(force=True, silent=True) or {}
+    title = str(data.get("title", "")).strip()
+    body = str(data.get("body", "")).strip()
+    if not (1 <= len(title) <= 120):
+        raise ValueError("Título deve ter de 1 a 120 caracteres.")
+    if not (1 <= len(body) <= MAX_POST_BODY):
+        raise ValueError("Conteúdo deve ter de 1 a %d caracteres." % MAX_POST_BODY)
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            "UPDATE posts SET title=%s, body=%s, updated_at=now() WHERE id=%s",
+            (title, body, pid),
+        )
+        if cur.rowcount == 0:
+            raise ApiError("Post não encontrado.", 404)
+    return jsonify(ok=True)
+
+
+@app.delete("/api/posts/<int:pid>")
+def api_delete_post(pid):
+    require_admin()
+    with db() as conn, conn.cursor() as cur:
+        cur.execute("DELETE FROM posts WHERE id=%s", (pid,))
+        if cur.rowcount == 0:
+            raise ApiError("Post não encontrado.", 404)
+    return jsonify(ok=True)
+
+
+@app.post("/api/posts/<int:pid>/comments")
+def api_add_comment(pid):
+    user = require_login()
+    data = request.get_json(force=True, silent=True) or {}
+    body = str(data.get("body", "")).strip()
+    if not (1 <= len(body) <= MAX_COMMENT_BODY):
+        raise ValueError("Comentário deve ter de 1 a %d caracteres." % MAX_COMMENT_BODY)
+    with db() as conn, conn.cursor() as cur:
+        cur.execute("SELECT 1 FROM posts WHERE id=%s", (pid,))
+        if cur.fetchone() is None:
+            raise ApiError("Post não encontrado.", 404)
+        cur.execute(
+            "INSERT INTO comments (post_id, author_id, body) VALUES (%s,%s,%s)"
+            " RETURNING id",
+            (pid, user["id"], body),
+        )
+        cid = cur.fetchone()[0]
+    return jsonify(id=cid), 201
+
+
+@app.delete("/api/posts/<int:pid>/comments/<int:cid>")
+def api_delete_comment(pid, cid):
+    user = require_login()
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT author_id FROM comments WHERE id=%s AND post_id=%s",
+            (cid, pid),
+        )
+        row = cur.fetchone()
+        if row is None:
+            raise ApiError("Comentário não encontrado.", 404)
+        if row[0] != user["id"] and user["role"] != "Admin":
+            raise ApiError("Você não pode remover esse comentário.", 403)
+        cur.execute("DELETE FROM comments WHERE id=%s", (cid,))
+    return jsonify(ok=True)
+
+
+@app.post("/api/posts/<int:pid>/like")
+def api_toggle_like(pid):
+    user = require_login()
+    with db() as conn, conn.cursor() as cur:
+        cur.execute("SELECT 1 FROM posts WHERE id=%s", (pid,))
+        if cur.fetchone() is None:
+            raise ApiError("Post não encontrado.", 404)
+        cur.execute(
+            "DELETE FROM post_likes WHERE post_id=%s AND user_id=%s",
+            (pid, user["id"]),
+        )
+        if cur.rowcount:
+            liked = False
+        else:
+            cur.execute(
+                "INSERT INTO post_likes (post_id, user_id) VALUES (%s,%s)",
+                (pid, user["id"]),
+            )
+            liked = True
+        cur.execute("SELECT count(*) FROM post_likes WHERE post_id=%s", (pid,))
+        count = cur.fetchone()[0]
+    return jsonify(liked=liked, like_count=count)
+
+
+# ------------------------------ gestão de admins -------------------------
+
+
+@app.get("/api/admins")
+def api_list_admins():
+    require_admin()
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, username, created_at FROM users"
+            " WHERE role = 'Admin' ORDER BY username")
+        rows = cur.fetchall()
+    return jsonify(admins=[
+        {"id": r[0], "username": r[1], "created_at": r[2].isoformat()}
+        for r in rows])
+
+
+@app.get("/api/users")
+def api_search_users():
+    require_admin()
+    q = str(request.args.get("q", "")).strip()
+    with db() as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, username, role FROM users"
+            " WHERE username ILIKE %s ORDER BY username LIMIT 20",
+            ("%" + q + "%",),
+        )
+        rows = cur.fetchall()
+    return jsonify(users=[
+        {"id": r[0], "username": r[1], "role": r[2] or "Aluno"} for r in rows])
+
+
+@app.post("/api/admins")
+def api_create_admin():
+    require_admin()
+    data = request.get_json(force=True, silent=True) or {}
+
+    user_id = data.get("user_id")
+    if user_id is not None:
+        # Promove um usuário já existente a Admin.
+        if isinstance(user_id, bool):
+            raise ValueError("user_id inválido.")
+        try:
+            uid = int(user_id)
+        except (TypeError, ValueError):
+            raise ValueError("user_id inválido.")
+        with db() as conn, conn.cursor() as cur:
+            cur.execute("SELECT username, role FROM users WHERE id=%s", (uid,))
+            row = cur.fetchone()
+            if row is None:
+                raise ApiError("Usuário não encontrado.", 404)
+            if row[1] == "Admin":
+                return jsonify(error="%s já é administrador." % row[0]), 409
+            cur.execute("UPDATE users SET role='Admin' WHERE id=%s", (uid,))
+        return jsonify(id=uid, username=row[0], role="Admin"), 201
+
+    # Cria uma conta nova de administrador do zero.
+    username = str(data.get("username", "")).strip()
+    password = str(data.get("password", ""))
+    try:
+        uid = _insert_user(username, password, "Admin")
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    except psycopg2.errors.UniqueViolation:
+        return jsonify(error="Esse nome de usuário já está em uso."), 409
+    return jsonify(id=uid, username=username, role="Admin"), 201
+
+
+@app.delete("/api/admins/<int:uid>")
+def api_demote_admin(uid):
+    admin = require_admin()
+    with db() as conn, conn.cursor() as cur:
+        cur.execute("SELECT username FROM users WHERE id=%s AND role='Admin'",
+                    (uid,))
+        row = cur.fetchone()
+        if row is None:
+            raise ApiError("Administrador não encontrado.", 404)
+        if uid == admin["id"]:
+            raise ApiError("Você não pode remover seu próprio acesso de admin.", 400)
+        if row[0] == "algoviz":
+            raise ApiError("O admin raiz 'algoviz' não pode ser rebaixado.", 400)
+        cur.execute("SELECT count(*) FROM users WHERE role='Admin'")
+        if cur.fetchone()[0] <= 1:
+            raise ApiError("Não é possível remover o último administrador.", 400)
+        cur.execute("UPDATE users SET role='Aluno' WHERE id=%s", (uid,))
+    return jsonify(ok=True)
+
+
 # Aplica as migrações pendentes (001_initial, 002_leticia_roles, ...) antes de
 # servir. Também funciona como passo separado do deploy: python migrate.py
 run_migrations()
 
+# "algoviz" é o admin raiz: criado se não existir e sempre garantido com
+# papel de Admin (idempotente mesmo quando a conta foi criada como Aluno).
 with db() as _conn, _conn.cursor() as _cur:
-    _cur.execute("SELECT id FROM users WHERE username = 'algoviz'")
-    if not _cur.fetchone():
-        _cur.execute(
-            "INSERT INTO users (username, password_hash) VALUES (%s, %s)",
-            ("algoviz", generate_password_hash("algoviz")),
-        )
+    _cur.execute(
+        "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, 'Admin')"
+        " ON CONFLICT (username) DO UPDATE SET role = 'Admin'",
+        ("algoviz", generate_password_hash("algoviz")),
+    )
 
 if __name__ == "__main__":
     from waitress import serve
