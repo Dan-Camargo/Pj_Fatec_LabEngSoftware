@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#000066">
 <title>AlgoViz — Visualizador de Algoritmos</title>
-<link rel="stylesheet" href="/static/style.css?v=2017">
+<link rel="stylesheet" href="/static/style.css?v=2018">
 </head>
 <body>
 <!-- =========================== TELA DE LOGIN =========================== -->
@@ -32,12 +32,12 @@
 <header>
   <div class="brand"><h1>:: Algo<span>Viz</span> ::</h1></div>
   <nav id="tabs">
-    <button data-tab="sorting" class="active">Ordenação</button>
+    <button data-tab="community" class="active">Comunidade</button>
+    <button data-tab="sorting">Ordenação</button>
     <button data-tab="race">Corrida</button>
     <button data-tab="search">Busca Binária</button>
     <button data-tab="path">Grafos · Caminhos</button>
     <button data-tab="history">Histórico <small>(Postgres)</small></button>
-    <button data-tab="community">Comunidade</button>
   </nav>
   <div id="auth-box" class="auth-box"></div>
 </header>
@@ -47,7 +47,7 @@
 <main>
 
 <!-- ============================ ORDENAÇÃO ============================ -->
-<section id="tab-sorting" class="tab active">
+<section id="tab-sorting" class="tab">
   <aside class="panel controls">
     <h2>Controles</h2>
     <label>Algoritmo
@@ -243,7 +243,7 @@
 </section>
 
 <!-- ============================== COMUNIDADE ========================== -->
-<section id="tab-community" class="tab">
+<section id="tab-community" class="tab active">
   <div class="panel feed-panel">
     <div class="hist-head">
       <button id="feed-back" class="ghost hidden">← Voltar</button>
@@ -312,13 +312,13 @@
 <!-- Peixes decorativos boiando no fundo; ficam atrás do conteúdo e
      aparecem borrados/vidrados atrás dos painéis de vidro. -->
 <div id="fish-tank" aria-hidden="true">
-  <div class="fish f1"><div class="bob"><div class="in b-koi s-m"><span class="tail"></span><span class="fin"></span><span class="body"><i class="eye"></i></span></div></div></div>
-  <div class="fish f2"><div class="bob"><div class="in b-gold s-l"><span class="tail"></span><span class="fin"></span><span class="body"><i class="eye"></i></span></div></div></div>
-  <div class="fish f3"><div class="bob"><div class="in b-cyan s-m flip"><span class="tail"></span><span class="fin"></span><span class="body"><i class="eye"></i></span></div></div></div>
-  <div class="fish f4"><div class="bob"><div class="in b-teal s-m"><span class="tail"></span><span class="fin"></span><span class="body"><i class="eye"></i></span></div></div></div>
-  <div class="fish f5"><div class="bob"><div class="in b-blue s-s"><span class="tail"></span><span class="fin"></span><span class="body"><i class="eye"></i></span></div></div></div>
-  <div class="fish f6"><div class="bob"><div class="in b-koi s-s flip"><span class="tail"></span><span class="fin"></span><span class="body"><i class="eye"></i></span></div></div></div>
-  <div class="fish f7"><div class="bob"><div class="in b-gold s-xl"><span class="tail"></span><span class="fin"></span><span class="body"><i class="eye"></i></span></div></div></div>
+  <div class="fish f1"><div class="bob"><div class="in flip"><img src="/static/assets/peixes/fish26.png" alt=""></div></div></div>
+  <div class="fish f2"><div class="bob"><div class="in"><img src="/static/assets/peixes/fish20.png" alt=""></div></div></div>
+  <div class="fish f3"><div class="bob"><div class="in flip"><img src="/static/assets/peixes/fish26.png" alt=""></div></div></div>
+  <div class="fish f4"><div class="bob"><div class="in"><img src="/static/assets/peixes/fish20.png" alt=""></div></div></div>
+  <div class="fish f5"><div class="bob"><div class="in flip"><img src="/static/assets/peixes/fish26.png" alt=""></div></div></div>
+  <div class="fish f6"><div class="bob"><div class="in"><img src="/static/assets/peixes/fish26.png" alt=""></div></div></div>
+  <div class="fish f7"><div class="bob"><div class="in flip"><img src="/static/assets/peixes/fish21.png" alt=""></div></div></div>
 </div>
 
 </body>

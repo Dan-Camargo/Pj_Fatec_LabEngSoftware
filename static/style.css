@@ -832,70 +832,28 @@ button.small { padding: 5px 12px; font-size: 13px; border-radius: 10px; }
 .f5 .bob { animation-duration: 4.5s; animation-delay: -3s; }
 .f6 .bob { animation-duration: 7s; animation-delay: -5s; }
 
-/* corpo do peixe, em unidades "em" (a escala muda pelo font-size) */
+/* corpo do peixe: usa os PNGs de referência (com transparência) */
 .in {
   position: relative;
-  width: 0;
-  height: 0;
-  font-size: 10px;
+  display: inline-block;
+  line-height: 0;
 }
-.in .body {
-  position: absolute;
-  top: -1.7em;
-  left: 0;
-  width: 5.6em;
-  height: 3.4em;
-  border-radius: 58% 58% 58% 58% / 45% 45% 55% 55%;
-  background: linear-gradient(180deg, var(--fc1), var(--fc2) 70%);
-  box-shadow: inset 0 0.3em 0.6em rgba(255, 255, 255, 0.55),
-              inset 0 -0.4em 0.8em rgba(0, 40, 80, 0.22);
-}
-.in .tail {
-  position: absolute;
-  left: -1.5em;
-  top: -0.9em;
-  width: 0;
-  height: 0;
-  border-top: 0.9em solid transparent;
-  border-bottom: 0.9em solid transparent;
-  border-right: 1.6em solid var(--fc1);
-  filter: drop-shadow(0 0.05em 0 rgba(0, 40, 80, 0.2));
-}
-.in .fin {
-  position: absolute;
-  top: -1.1em;
-  right: 0.8em;
-  width: 0;
-  height: 0;
-  border-left: 0.7em solid transparent;
-  border-right: 0.7em solid transparent;
-  border-bottom: 1.2em solid var(--fc2);
-  opacity: 0.85;
-}
-.in .eye {
-  position: absolute;
-  top: 1em;
-  right: 0.9em;
-  width: 0.8em;
-  height: 1em;
-  border-radius: 50%;
-  background: #ffffff;
-  box-shadow: inset 0.28em 0 0.2em rgba(10, 50, 90, 0.62);
+.in img {
+  display: block;
+  max-width: 100%;
+  height: auto;
 }
 .in.flip { transform: scaleX(-1); }
+.bob { display: inline-block; }
 
-/* tamanhos (escala via font-size) */
-.s-s { font-size: 7px; }
-.s-m { font-size: 10px; }
-.s-l { font-size: 13px; }
-.s-xl { font-size: 17px; }
-
-/* cores vindas das referências (koi laranja, dourado, azul-céu, água, azul) */
-.b-koi  { --fc1: #ffb25e; --fc2: #d9712f; }
-.b-gold { --fc1: #ffe27a; --fc2: #d9a52e; }
-.b-cyan { --fc1: #8ff0ff; --fc2: #2fb8e0; }
-.b-teal { --fc1: #8ff0c8; --fc2: #2bbd8f; }
-.b-blue { --fc1: #8fbcff; --fc2: #3a63d8; }
+/* tamanhos dos peixes (largura da imagem; altura segue a proporção) */
+.f1 .in img { width: 108px; }
+.f2 .in img { width: 260px; }
+.f3 .in img { width: 88px; }
+.f4 .in img { width: 220px; }
+.f5 .in img { width: 64px; }
+.f6 .in img { width: 130px; }
+.f7 .in img { width: 340px; }
 
 @keyframes swim-right {
   from { transform: translateX(-160px); }
