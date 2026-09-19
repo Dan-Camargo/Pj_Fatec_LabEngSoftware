@@ -828,6 +828,7 @@ button.small { padding: 5px 12px; font-size: 13px; border-radius: 10px; }
   position: relative;
   display: inline-block;
   line-height: 0;
+  filter: blur(var(--blur, 0px));
 }
 .in img {
   display: block;

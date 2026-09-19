@@ -1243,6 +1243,7 @@ function spawnFish(tank) {
   const inner = document.createElement("div");
   const flip = isBobber ? Math.random() < 0.5 : dir === "swim-l";
   inner.className = "in" + (flip ? " flip" : "");
+  inner.style.setProperty("--blur", fishRand(0.2, 1.2).toFixed(2) + "px");
 
   const img = document.createElement("img");
   img.src = fishPickImage();
