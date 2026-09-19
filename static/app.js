@@ -1205,6 +1205,56 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnRegister) btnRegister.onclick = () => Auth.submit("/api/register", "Conta criada — você já está logado!");
 });
 
+/* =========================== AQUÁRIO ALEATÓRIO ========================== */
+// Peixes decorativos: cada um nasce com posição, tamanho, imagem, direção,
+// velocidade, opacidade e balanço sorteados, então "mergulham" pelo fundo.
+const FISH_SRC = [
+  "/static/assets/peixes/fish26.png",
+  "/static/assets/peixes/fish20.png",
+  "/static/assets/peixes/fish21.png",
+];
+const FISH_COUNT = 7;
+
+function fishPickImage() {
+  const r = Math.random();
+  return r < 0.5 ? FISH_SRC[0] : r < 0.85 ? FISH_SRC[1] : FISH_SRC[2];
+}
+
+function fishRand(a, b) { return a + Math.random() * (b - a); }
+
+function spawnFish(tank) {
+  const isBobber = Math.random() < 0.28;
+  const dir = Math.random() < 0.5 ? "swim-r" : "swim-l";
+  const dur = fishRand(32, 70);
+
+  const fish = document.createElement("div");
+  fish.className = "fish" + (isBobber ? "" : " " + dir);
+  fish.style.setProperty("--top", fishRand(4, 86).toFixed(1) + "%");
+  fish.style.setProperty("--dur", dur.toFixed(1) + "s");
+  fish.style.setProperty("--delay", "-" + fishRand(0, dur).toFixed(1) + "s");
+  fish.style.setProperty("--op", fishRand(0.35, 0.75).toFixed(2));
+  if (isBobber) fish.style.left = fishRand(3, 90).toFixed(1) + "%";
+
+  const bob = document.createElement("div");
+  bob.className = "bob";
+  bob.style.setProperty("--bdur", fishRand(4.5, 8.5).toFixed(1) + "s");
+  bob.style.setProperty("--bdelay", "-" + fishRand(0, 8).toFixed(1) + "s");
+
+  const inner = document.createElement("div");
+  const flip = isBobber ? Math.random() < 0.5 : dir === "swim-l";
+  inner.className = "in" + (flip ? " flip" : "");
+
+  const img = document.createElement("img");
+  img.src = fishPickImage();
+  img.alt = "";
+  img.style.width = fishRand(60, 320).toFixed(0) + "px";
+
+  inner.appendChild(img);
+  bob.appendChild(inner);
+  fish.appendChild(bob);
+  tank.appendChild(fish);
+}
+
 /* ================================== boot ================================ */
 (async function boot() {
   try { META = await api("/api/meta"); } catch (e) { toast(e.message, true); }
@@ -1229,6 +1279,12 @@ document.addEventListener("DOMContentLoaded", () => {
   Race.newVector();
   Datasets.refresh();
   Auth.refresh();          // descobre se já há sessão ativa e monta o cabeçalho
+
+  // Popula o aquário aleatório ao fundo
+  const tank = $("#fish-tank");
+  if (tank) {
+    for (let i = 0; i < FISH_COUNT; i++) spawnFish(tank);
+  }
 
   // Contador de visitas estilo 2002 (com dados honestos: nº de execuções
   // registradas no PostgreSQL). O elemento só existe se o rodapé existir.
