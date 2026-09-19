@@ -8,6 +8,16 @@
 
 * { box-sizing: border-box; }
 
+/* Fonte redonda/chunky "bubble" (Baloo 2, pesos 700-800) embutida localmente
+   para a logo AlgoViz estilo iCarly renderizar idêntica em qualquer máquina */
+@font-face {
+  font-family: "Baloo 2";
+  font-style: normal;
+  font-weight: 700 800;
+  font-display: swap;
+  src: url("/static/assets/fonts/baloo2-latin.woff2") format("woff2");
+}
+
 body {
   margin: 0;
   color: #1c3a52;
@@ -44,7 +54,7 @@ header {
 }
 .brand h1 {
   margin: 0 0 8px 0;
-  font-family: "Segoe UI Rounded", "Arial Rounded MT Bold", "Trebuchet MS", "Nunito", "Verdana", sans-serif;
+  font-family: "Baloo 2", "Segoe UI Rounded", "Arial Rounded MT Bold", "Trebuchet MS", "Verdana", sans-serif;
   font-size: 30px;
   font-weight: 800;
   font-style: italic;
