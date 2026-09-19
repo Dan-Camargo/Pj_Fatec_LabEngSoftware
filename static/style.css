@@ -118,7 +118,7 @@ main { max-width: 1450px; margin: 0 auto; padding: 18px 24px 40px; }
               0 20px 44px rgba(20, 70, 120, 0.18),
               inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
-.panel h2, .panel h3 {
+.panel > h2, .panel > h3 {
   margin: -16px -16px 14px -16px;      /* barra de título colada na borda */
   background: linear-gradient(180deg, #8fc0f2, #3a7de0 45%, #2965c6);
   color: #FFFFFF;
@@ -129,7 +129,7 @@ main { max-width: 1450px; margin: 0 auto; padding: 18px 24px 40px; }
   text-shadow: 0 1px 2px rgba(0, 30, 80, 0.45);
   border-bottom: 1px solid #2359ab;
 }
-.panel h3 {
+.panel > h3 {
   margin: 18px -16px 8px;
   font-size: 13px;
   text-transform: uppercase;
@@ -545,7 +545,7 @@ button.small { padding: 5px 12px; font-size: 13px; border-radius: 10px; }
   main { padding: 10px 10px 28px; }
 
   .panel { padding: 10px; border-radius: 12px; }
-  .panel h2, .panel h3 { margin: -10px -10px 12px; padding: 8px 12px; font-size: 15px; }
+  .panel > h2, .panel > h3 { margin: -10px -10px 12px; padding: 8px 12px; font-size: 15px; }
 
   .feed-panel .hist-head { margin: -10px -10px 14px; padding: 8px 10px; }
   .feed-panel .hist-head .btn-row { width: 100%; justify-content: flex-end; }
@@ -717,10 +717,9 @@ button.small { padding: 5px 12px; font-size: 13px; border-radius: 10px; }
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #0d6b38;
   font-weight: bold;
-  background: linear-gradient(180deg, #e6f8ee, #cdeed9);
-  border: 1px solid rgba(35, 150, 85, 0.45);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(226, 240, 250, 0.6));
+  border: 1px solid rgba(90, 150, 215, 0.45);
   border-radius: 10px;
   padding: 2px 9px;
 }
@@ -765,7 +764,7 @@ button.small { padding: 5px 12px; font-size: 13px; border-radius: 10px; }
   gap: 8px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
-.feed-comment b { color: #0d6b38; }
+.feed-comment b { font-weight: bold; }
 .feed-comment p { margin: 6px 0 0; width: 100%; line-height: 1.5; color: #1c3a52; }
 .feed-comment .ghost { margin-left: auto; border-radius: 10px; }
 .feed-label { margin-top: 12px; }

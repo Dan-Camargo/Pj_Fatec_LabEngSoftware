@@ -50,6 +50,19 @@ function escapeHtml(s) {
   }[ch]));
 }
 
+// Cor determinística por usuário: o mesmo nome sempre recebe a mesma cor,
+// com variedade entre pessoas (usada nos autores de posts e comentários).
+const authorPalette = [
+  "#0d6b38", "#b3472e", "#6b4fd8", "#c2457a", "#0f6d9e",
+  "#7a5d00", "#2f8f5b", "#a03a9e", "#d0561a", "#3b5fd8",
+  "#8a5a2b", "#7a1f6e",
+];
+function authorColor(name) {
+  let h = 7;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return authorPalette[h % authorPalette.length];
+}
+
 // Vetor aleatório de valores 5..100 usado nas abas Ordenação e Corrida
 function randomArray(n) {
   return Array.from({ length: n }, () => 5 + Math.floor(Math.random() * 96));
@@ -860,7 +873,7 @@ const Feed = {
           <h3 class="feed-post-title">${escapeHtml(p.title)}</h3>
           <p class="feed-post-excerpt">${nl2br(p.excerpt)}</p>
           <div class="feed-post-meta">
-            <span class="feed-author">👤 ${escapeHtml(p.author.username)}</span>
+            <span class="feed-author" style="color:${authorColor(p.author.username)}">👤 ${escapeHtml(p.author.username)}</span>
             <span>🕒 ${new Date(p.created_at).toLocaleString("pt-BR")}</span>
             <button class="ghost small" data-like="${p.id}" title="Curtir">
               ${p.liked_by_me ? "❤" : "🤍"} <b>${fmtInt(p.like_count)}</b>
@@ -890,7 +903,7 @@ const Feed = {
       <article class="feed-post detail" data-id="${p.id}">
         <h2 class="feed-post-title">${escapeHtml(p.title)}</h2>
         <div class="feed-post-meta">
-          <span class="feed-author">👤 ${escapeHtml(p.author.username)}</span>
+          <span class="feed-author" style="color:${authorColor(p.author.username)}">👤 ${escapeHtml(p.author.username)}</span>
           <span>🕒 ${new Date(p.created_at).toLocaleString("pt-BR")}</span>
         </div>
         <div class="feed-post-body">${nl2br(p.body)}</div>
@@ -909,7 +922,7 @@ const Feed = {
         <div class="feed-comments">
           ${p.comments.length ? p.comments.map(c => `
             <div class="feed-comment">
-              <b>${escapeHtml(c.author.username)}</b>
+              <b style="color:${authorColor(c.author.username)}">${escapeHtml(c.author.username)}</b>
               <span class="hint">${new Date(c.created_at).toLocaleString("pt-BR")}</span>
               ${(mine(c) || this.admin) ? `
                 <button class="ghost small" data-del-c="${c.id}" title="Excluir">✕</button>` : ""}
