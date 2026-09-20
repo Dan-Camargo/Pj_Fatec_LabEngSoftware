@@ -44,6 +44,25 @@ async function api(url, opts = {}) {
 
 const fmtInt = n => Number(n ?? 0).toLocaleString("pt-BR");
 
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[ch]));
+}
+
+// Cor determinística por usuário: o mesmo nome sempre recebe a mesma cor,
+// com variedade entre pessoas (usada nos autores de posts e comentários).
+const authorPalette = [
+  "#0d6b38", "#b3472e", "#6b4fd8", "#c2457a", "#0f6d9e",
+  "#7a5d00", "#2f8f5b", "#a03a9e", "#d0561a", "#3b5fd8",
+  "#8a5a2b", "#7a1f6e",
+];
+function authorColor(name) {
+  let h = 7;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return authorPalette[h % authorPalette.length];
+}
+
 // Vetor aleatório de valores 5..100 usado nas abas Ordenação e Corrida
 function randomArray(n) {
   return Array.from({ length: n }, () => 5 + Math.floor(Math.random() * 96));
@@ -59,8 +78,12 @@ $$("#tabs button").forEach(btn =>
 
     // Abas que buscam dados sob demanda carregam na primeira abertura
     if (btn.dataset.tab === "history") History.load();
+<<<<<<< HEAD
     if (btn.dataset.tab === "professores") Professores.load();
     if (btn.dataset.tab === "alunos") Alunos.load();
+=======
+    if (btn.dataset.tab === "community") Feed.load();
+>>>>>>> af6a3dec9eb2e0366b749a63f6aeb50b3332262e
   })
 );
 
@@ -804,130 +827,327 @@ const History = {
 $("#btn-refresh-hist").addEventListener("click", () => History.load());
 $("#hist-scope").addEventListener("change", () => History.load());
 
-/* ============================== PROFESSORES =============================
-   CRUD completo da entidade "professor" da plataforma de ensino.
-   Lista em tabela, cria/edita num modal réplica do visual Windows 98.
+/* ============================== COMUNIDADE =============================
+   Feed/blog: admins escrevem posts; usuários logados curtem e comentam.
+   Três camadas aqui: lista (feed), detalhe do post e o painel de admins
+   (modal) para criar/promover/rebaixar administradores.
    ====================================================================== */
-const Professores = {
-  items: [],
+const Feed = {
+  view: "list",            // "list" ou "post"
+  postId: null, post: null,
   editId: null,
 
-  async load() {
-    try {
-      this.items = await api("/api/professores");
-    } catch (e) { toast(e.message, true); }
-    this.render();
-  },
+  get admin() { return Auth.user && Auth.user.role === "Admin"; },
 
-  render() {
-    const tbody = $("#tbl-professores");
-    tbody.innerHTML = "";
-    if (!this.items.length) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = '<td colspan="6">Nenhum professor cadastrado ainda.</td>';
-      tbody.appendChild(tr);
+  async load() {
+    if (!Auth.user) {                       // feed é exclusivo de logados
+      this.view = "list";
+      $("#feed-title").textContent = "Comunidade";
+      $("#feed-back").classList.add("hidden");
+      $("#feed-admin-actions").classList.add("hidden");
+      $("#feed-content").innerHTML =
+        '<p class="hint">🔒 Entre com sua conta para acessar a comunidade.</p>';
       return;
     }
-    this.items.forEach(p => {
-      const tr = document.createElement("tr");
-      tr.innerHTML =
-        `<td>${p.id}</td>` +
-        `<td><b>${p.nome}</b></td>` +
-        `<td>${p.email || "—"}</td>` +
-        `<td>${p.telefone || "—"}</td>` +
-        `<td>${p.especialidade || "—"}</td>` +
-        `<td>` +
-        `<button class="ghost small" data-edit="${p.id}">Editar</button> ` +
-        `<button class="ghost small" data-del="${p.id}">Excluir</button>` +
-        `</td>`;
-      tbody.appendChild(tr);
-    });
+    if (this.view === "post" && this.postId) return this.openPost(this.postId);
+    return this.loadList();
   },
 
-open(id) {
-    this.editId = id || null;
-    const p = id ? this.items.find(x => x.id === id) : null;
-    $("#prof-nome").value = p ? p.nome : "";
-    $("#prof-email").value = p && p.email ? p.email : "";
-    $("#prof-telefone").value = p && p.telefone ? p.telefone : "";
-    $("#prof-especialidade").value = p && p.especialidade ? p.especialidade : "";
-
-    // Campos de login do novo usuário
-    const userInput = $("#prof-user");
-    const passInput = $("#prof-pass");
-    if (userInput && passInput) {
-      userInput.value = "";
-      passInput.value = "";
-      // Ao editar um professor existente, oculta campos de credenciais
-      userInput.closest("label").style.display = id ? "none" : "block";
-      passInput.closest("label").style.display = id ? "none" : "block";
-    }
-
-    $("#prof-modal").classList.remove("hidden");
-    $("#prof-nome").focus();
-  },
-
-  close() {
-    $("#prof-modal").classList.add("hidden");
-    this.editId = null;
-    const userInput = $("#prof-user");
-    const passInput = $("#prof-pass");
-    if (userInput && passInput) {
-      userInput.value = "";
-      passInput.value = "";
-    }
-  },
-
-  async submit() {
-    const payload = {
-      nome: $("#prof-nome").value.trim(),
-      email: $("#prof-email").value.trim(),
-      telefone: $("#prof-telefone").value.trim(),
-      especialidade: $("#prof-especialidade").value.trim(),
-    };
-
-    if (!payload.nome) { toast("Informe o nome do professor.", true); return; }
-
-    let url = "/api/professores", method = "POST", okMsg = "Professor cadastrado como usuário!";
-    if (this.editId) {
-      url += "/" + this.editId;
-      method = "PUT";
-      okMsg = "Professor atualizado!";
-    } else {
-      // Captura usuário e senha apenas na criação
-      payload.username = ($("#prof-user")?.value || "").trim();
-      payload.password = $("#prof-pass")?.value || "";
-
-      if (!payload.password || payload.password.length < 4) {
-        toast("A senha inicial deve ter no mínimo 4 caracteres.", true);
+  async loadList() {
+    try {
+      const { posts } = await api("/api/posts");
+      this.view = "list";
+      this.postId = null;
+      $("#feed-title").textContent = "Comunidade";
+      $("#feed-back").classList.add("hidden");
+      $("#feed-admin-actions").classList.toggle("hidden", !this.admin);
+      const box = $("#feed-content");
+      box.innerHTML = "";
+      if (!posts.length) {
+        box.innerHTML = `<p class="hint">Nenhum post ainda. ` +
+          (this.admin ? "Clique em <b>Nova postagem</b> para publicar! ✍" 
+            : "Os administradores em breve publicarão por aqui.") + `</p>`;
         return;
       }
-    }
-
-    try {
-      await api(url, { method, body: JSON.stringify(payload) });
-      toast(okMsg);
-      this.close();
-      await this.load();
+      const nl2br = s => escapeHtml(s).replace(/\n/g, "<br>");
+      posts.forEach(p => {
+        const a = document.createElement("article");
+        a.className = "feed-post";
+        a.dataset.open = p.id;
+        a.innerHTML = `
+          <h3 class="feed-post-title">${escapeHtml(p.title)}</h3>
+          <p class="feed-post-excerpt">${nl2br(p.excerpt)}</p>
+          <div class="feed-post-meta">
+            <span class="feed-author" style="color:${authorColor(p.author.username)}">👤 ${escapeHtml(p.author.username)}</span>
+            <span>🕒 ${new Date(p.created_at).toLocaleString("pt-BR")}</span>
+            <button class="ghost small" data-like="${p.id}" title="Curtir">
+              ${p.liked_by_me ? "❤" : "🤍"} <b>${fmtInt(p.like_count)}</b>
+            </button>
+            <span title="Comentários">💬 ${fmtInt(p.comment_count)}</span>
+          </div>`;
+        box.appendChild(a);
+      });
     } catch (e) { toast(e.message, true); }
   },
 
-  async remove(id) {
-    const p = this.items.find(x => x.id === id);
-    if (!confirm(`Excluir o professor "${p ? p.nome : id}"?`)) return;
+  async openPost(id) {
     try {
-      await api("/api/professores/" + id, { method: "DELETE" });
-      toast("Professor excluído.");
-      await this.load();
+      const post = await api("/api/posts/" + id);
+      this.post = post; this.postId = id; this.view = "post";
+      $("#feed-title").textContent = "Post";
+      $("#feed-back").classList.remove("hidden");
+      $("#feed-admin-actions").classList.toggle("hidden", !this.admin);
+      $("#feed-content").innerHTML = this.postHTML(post);
+    } catch (e) { toast(e.message, true); }
+  },
+
+  postHTML(p) {
+    const nl2br = s => escapeHtml(s).replace(/\n/g, "<br>");
+    const mine = c => c.author.id === (Auth.user && Auth.user.id);
+    return `
+      <article class="feed-post detail" data-id="${p.id}">
+        <h2 class="feed-post-title">${escapeHtml(p.title)}</h2>
+        <div class="feed-post-meta">
+          <span class="feed-author" style="color:${authorColor(p.author.username)}">👤 ${escapeHtml(p.author.username)}</span>
+          <span>🕒 ${new Date(p.created_at).toLocaleString("pt-BR")}</span>
+        </div>
+        <div class="feed-post-body">${nl2br(p.body)}</div>
+        ${this.admin ? `
+          <div class="btn-row">
+            <button class="ghost small" data-edit-post="${p.id}">✏ Editar</button>
+            <button class="ghost small danger" data-del-post="${p.id}">🗑 Excluir</button>
+          </div>` : ""}
+        <div class="feed-actions">
+          <button class="ghost small" data-like="${p.id}">
+            ${p.liked_by_me ? "❤ Curtido" : "🤍 Curtir"} · <b>${fmtInt(p.like_count)}</b>
+          </button>
+          <span class="hint">${fmtInt(p.comment_count)} comentário(s)</span>
+        </div>
+        <h3 class="feed-h3">Comentários</h3>
+        <div class="feed-comments">
+          ${p.comments.length ? p.comments.map(c => `
+            <div class="feed-comment">
+              <b style="color:${authorColor(c.author.username)}">${escapeHtml(c.author.username)}</b>
+              <span class="hint">${new Date(c.created_at).toLocaleString("pt-BR")}</span>
+              ${(mine(c) || this.admin) ? `
+                <button class="ghost small" data-del-c="${c.id}" title="Excluir">✕</button>` : ""}
+              <p>${nl2br(c.body)}</p>
+            </div>`).join("") : `<p class="hint">Seja o primeiro a comentar! 💬</p>`}
+        </div>
+        <form id="comment-form">
+          <label class="feed-label">Comentar
+            <textarea id="comment-body" rows="3" maxlength="1000"
+              placeholder="escreva um comentário..."></textarea>
+          </label>
+          <button type="submit" class="primary small">Comentar ▶</button>
+        </form>
+      </article>`;
+  },
+
+  async like(id) {
+    try {
+      const r = await api(`/api/posts/${id}/like`, { method: "POST" });
+      if (this.view === "post") {
+        this.post.like_count = r.like_count;
+        this.post.liked_by_me = r.liked;
+        const btn = $("#feed-content").querySelector(`[data-like="${id}"]`);
+        if (btn) btn.innerHTML = `${r.liked ? "❤ Curtido" : "🤍 Curtir"} · <b>${fmtInt(r.like_count)}</b>`;
+      } else {
+        await this.loadList();
+      }
+    } catch (e) { toast(e.message, true); }
+  },
+
+  async comment(pid) {
+    const body = $("#comment-body").value.trim();
+    if (!body) { toast("Escreva um comentário.", true); return; }
+    try {
+      await api(`/api/posts/${pid}/comments`, {
+        method: "POST", body: JSON.stringify({ body }),
+      });
+      toast("Comentário publicado! 💬");
+      await this.openPost(pid);
+    } catch (e) { toast(e.message, true); }
+  },
+
+  async delComment(pid, cid) {
+    if (!confirm("Excluir esse comentário?")) return;
+    try {
+      await api(`/api/posts/${pid}/comments/${cid}`, { method: "DELETE" });
+      toast("Comentário excluído.");
+      await this.openPost(pid);
+    } catch (e) { toast(e.message, true); }
+  },
+
+  openPostEditor(id = null) {
+    this.editId = id || null;
+    const p = id && this.post && this.post.id === id ? this.post : null;
+    $("#post-title").value = p ? p.title : "";
+    $("#post-body").value = p ? p.body : "";
+    $(".win-title", $("#post-modal")).textContent =
+      p ? ":: Editar postagem ::" : ":: Nova postagem ::";
+    $("#post-modal").classList.remove("hidden");
+    $("#post-title").focus();
+  },
+
+  closePostEditor() {
+    $("#post-modal").classList.add("hidden");
+    this.editId = null;
+    $("#post-title").value = "";
+    $("#post-body").value = "";
+  },
+
+  async savePost() {
+    const title = $("#post-title").value.trim();
+    const body = $("#post-body").value.trim();
+    if (!title) { toast("Dê um título ao post.", true); return; }
+    if (!body) { toast("Escreva o conteúdo do post.", true); return; }
+    try {
+      let id = this.editId;
+      if (id) {
+        await api(`/api/posts/${id}`, { method: "PUT", body: JSON.stringify({ title, body }) });
+        toast("Post atualizado! ✍");
+      } else {
+        const r = await api("/api/posts", { method: "POST", body: JSON.stringify({ title, body }) });
+        id = r.id;
+        toast("Post publicado! 🎉");
+      }
+      this.closePostEditor();
+      await this.openPost(id);
+    } catch (e) { toast(e.message, true); }
+  },
+
+  async delPost(id) {
+    if (!confirm("Excluir este post e todos os comentários dele?")) return;
+    try {
+      await api(`/api/posts/${id}`, { method: "DELETE" });
+      toast("Post excluído.");
+      this.view = "list";
+      await this.loadList();
+    } catch (e) { toast(e.message, true); }
+  },
+
+  /* ------------------------- gerenciamento de admins ------------------- */
+  openAdminModal() {
+    $("#adm-search").value = "";
+    $("#adm-results").innerHTML = "";
+    this.renderAdminList();
+    $("#admin-modal").classList.remove("hidden");
+  },
+
+  closeAdminModal() {
+    $("#admin-modal").classList.add("hidden");
+  },
+
+  async renderAdminList() {
+    try {
+      const { admins } = await api("/api/admins");
+      const ul = $("#adm-list");
+      ul.innerHTML = "";
+      admins.forEach(a => {
+        const li = document.createElement("li");
+        const self = a.id === (Auth.user && Auth.user.id);
+        li.innerHTML = `<span>👑 ${escapeHtml(a.username)} <span class="meta">desde ${new Date(a.created_at).toLocaleDateString("pt-BR")}</span></span>
+          <span>${self ? '<span class="hint">você</span>'
+            : `<button class="ghost small" data-demote="${a.id}" title="Rebaixar para Aluno">Rebaixar</button>`}</span>`;
+        ul.appendChild(li);
+      });
+    } catch (e) { toast(e.message, true); }
+  },
+
+  async createAdmin() {
+    const username = $("#adm-user").value.trim();
+    const password = $("#adm-pass").value;
+    if (!username || !password) { toast("Informe usuário e senha do admin.", true); return; }
+    try {
+      await api("/api/admins", { method: "POST", body: JSON.stringify({ username, password }) });
+      toast(`Admin "${username}" criado! 👑`);
+      $("#adm-user").value = "";
+      $("#adm-pass").value = "";
+      await this.renderAdminList();
+    } catch (e) { toast(e.message, true); }
+  },
+
+  async promote(uid) {
+    try {
+      await api("/api/admins", { method: "POST", body: JSON.stringify({ user_id: uid }) });
+      toast("Usuário promovido a admin! 👑");
+      $("#adm-search").value = "";
+      $("#adm-results").innerHTML = "";
+      await this.renderAdminList();
+    } catch (e) { toast(e.message, true); }
+  },
+
+  async demote(uid) {
+    if (!confirm("Rebaixar esse administrador para Aluno?")) return;
+    try {
+      await api("/api/admins/" + uid, { method: "DELETE" });
+      toast("Admin rebaixado.");
+      await this.renderAdminList();
+    } catch (e) { toast(e.message, true); }
+  },
+
+  async searchUsers() {
+    const q = $("#adm-search").value.trim();
+    const box = $("#adm-results");
+    if (!q) { box.innerHTML = ""; return; }
+    try {
+      const { users } = await api("/api/users?q=" + encodeURIComponent(q));
+      box.innerHTML = "";
+      users.forEach(u => {
+        if (u.role === "Admin") return;
+        const d = document.createElement("div");
+        d.className = "feed-promote";
+        d.innerHTML = `<span>${escapeHtml(u.username)} <span class="meta">(${escapeHtml(u.role)})</span></span>
+          <button class="ghost small" data-promote="${u.id}">Promover →</button>`;
+        box.appendChild(d);
+      });
+      if (!box.children.length) box.innerHTML = '<p class="hint">Nenhum candidato encontrado.</p>';
     } catch (e) { toast(e.message, true); }
   },
 };
 
-$("#tbl-professores").addEventListener("click", e => {
-  const ed = e.target.closest("[data-edit]");
-  const del = e.target.closest("[data-del]");
-  if (ed) Professores.open(+ed.dataset.edit);
-  else if (del) Professores.remove(+del.dataset.del);
+/* ------------------------- eventos da comunidade ----------------------- */
+$("#feed-back").addEventListener("click", () => { Feed.view = "list"; Feed.loadList(); });
+$("#btn-post-novo").addEventListener("click", () => Feed.openPostEditor());
+$("#btn-admin-painel").addEventListener("click", () => Feed.openAdminModal());
+
+$("#btn-post-salvar").addEventListener("click", () => Feed.savePost());
+$("#btn-post-cancelar").addEventListener("click", () => Feed.closePostEditor());
+$("#post-modal").addEventListener("click", e => {
+  if (e.target === e.currentTarget) Feed.closePostEditor();
+});
+
+$("#btn-adm-criar").addEventListener("click", () => Feed.createAdmin());
+$("#btn-adm-fechar").addEventListener("click", () => Feed.closeAdminModal());
+$("#admin-modal").addEventListener("click", e => {
+  if (e.target === e.currentTarget) Feed.closeAdminModal();
+});
+$("#adm-search").addEventListener("input", () => Feed.searchUsers());
+
+// Delegação de cliques dentro do conteúdo do feed (lista + detalhe).
+$("#feed-content").addEventListener("click", async e => {
+  const like = e.target.closest("[data-like]");
+  const open = e.target.closest("[data-open]");
+  const delC = e.target.closest("[data-del-c]");
+  const editP = e.target.closest("[data-edit-post]");
+  const delP = e.target.closest("[data-del-post]");
+  const promote = e.target.closest("[data-promote]");
+  const demote = e.target.closest("[data-demote]");
+  if (like) return Feed.like(+like.dataset.like);
+  if (open) return Feed.openPost(+open.dataset.open);
+  if (delC) return Feed.delComment(Feed.postId, +delC.dataset.delC);
+  if (editP) return Feed.openPostEditor(+editP.dataset.editPost);
+  if (delP) return Feed.delPost(+delP.dataset.delPost);
+  if (promote) return Feed.promote(+promote.dataset.promote);
+  if (demote) return Feed.demote(+demote.dataset.demote);
+});
+
+$("#feed-content").addEventListener("submit", async e => {
+  if (e.target.id === "comment-form") {
+    e.preventDefault();
+    return Feed.comment(Feed.postId);
+  }
 });
 
 /* ================================ ALUNOS ================================
@@ -1045,6 +1265,7 @@ const Auth = {
     this.render();
     Datasets.refresh();
     if ($("#tab-history").classList.contains("active")) History.load();
+    if ($("#tab-community").classList.contains("active")) Feed.load();
   },
 
   render() {
@@ -1052,7 +1273,9 @@ const Auth = {
     const overlay = $("#login-overlay");
     if (this.user) {
       if (overlay) overlay.classList.add("hidden");
-      box.innerHTML = `<span class="hello">👤 ${this.user.username}</span>` +
+      const badge = this.user.role === "Admin"
+        ? '<span class="role-badge" title="Administrador">👑 Admin</span>' : "";
+      box.innerHTML = `<span class="hello">👤 ${this.user.username}</span>${badge}` +
         `<button id="btn-logout" class="ghost small">Sair</button>`;
       $("#btn-logout").onclick = async () => {
         try { await api("/api/logout", { method: "POST" }); } catch (_) {}
@@ -1080,6 +1303,7 @@ const Auth = {
   },
 };
 
+<<<<<<< HEAD
    document.addEventListener("DOMContentLoaded", () => {
    const btnLogin = $("#overlay-btn-login");
    if (btnLogin) btnLogin.onclick = () => Auth.submit("/api/login", "Bem-vindo(a) de volta!");
@@ -1099,7 +1323,126 @@ const Auth = {
   $("#aluno-modal").addEventListener("click", e => {
     if (e.target === e.currentTarget) Alunos.close();
   });
+=======
+document.addEventListener("DOMContentLoaded", () => {
+  const btnLogin = $("#overlay-btn-login");
+  const btnRegister = $("#overlay-btn-register");
+  if (btnLogin) btnLogin.onclick = () => Auth.submit("/api/login", "Bem-vindo(a) de volta!");
+  if (btnRegister) btnRegister.onclick = () => Auth.submit("/api/register", "Conta criada — você já está logado!");
+>>>>>>> af6a3dec9eb2e0366b749a63f6aeb50b3332262e
 });
+
+/* =========================== AQUÁRIO ALEATÓRIO ========================== */
+// Peixes decorativos: cada um nasce com posição, tamanho, imagem, direção,
+// velocidade, opacidade e balanço sorteados, então "mergulham" pelo fundo.
+const FISH_SRC = [
+  "/static/assets/peixes/fish26.png",
+  "/static/assets/peixes/fish20.png",
+  "/static/assets/peixes/fish21.png",
+];
+const FISH_COUNT = 7;
+
+function fishPickImage() {
+  const r = Math.random();
+  return r < 0.5 ? FISH_SRC[0] : r < 0.85 ? FISH_SRC[1] : FISH_SRC[2];
+}
+
+function fishRand(a, b) { return a + Math.random() * (b - a); }
+
+// Velocidade gradual e suave: cada peixe tem uma velocidade-alvo sorteada e a
+// velocidade real converge devagar até ela (lerp), re-sorteando o alvo a cada
+// poucos segundos — o nado acelera/desacelera naturalmente, sem degraus.
+const fishNextRoll = new WeakMap();
+
+function fishTargetSpeed() { return fishRand(16, 64); }
+
+function spawnFish(tank, isBobber) {
+  const dir = Math.random() < 0.5 ? 1 : -1;   // +1 nada p/ direita, -1 p/ esquerda
+
+  const fish = document.createElement("div");
+  fish.className = "fish";
+  fish.style.setProperty("--top", fishRand(4, 86).toFixed(1) + "%");
+  fish.style.setProperty("--op", fishRand(0.35, 0.75).toFixed(2));
+
+  const bob = document.createElement("div");
+  bob.className = "bob";
+  bob.style.setProperty("--bdur", fishRand(4.5, 8.5).toFixed(1) + "s");
+  bob.style.setProperty("--bdelay", "-" + fishRand(0, 8).toFixed(1) + "s");
+
+  const inner = document.createElement("div");
+  inner.className = "in" + ((isBobber ? Math.random() < 0.5 : dir === -1) ? " flip" : "");
+  inner.style.setProperty("--blur", fishRand(0.2, 1.2).toFixed(2) + "px");
+
+  const img = document.createElement("img");
+  img.src = fishPickImage();
+  img.alt = "";
+  img.style.width = fishRand(60, 320).toFixed(0) + "px";
+
+  inner.appendChild(img);
+  bob.appendChild(inner);
+  fish.appendChild(bob);
+  tank.appendChild(fish);
+
+  if (isBobber) {                // paradinho: só balança no lugar
+    fish.style.left = fishRand(3, 90).toFixed(1) + "%";
+    return null;
+  }
+
+  const margin = 40 + parseInt(img.style.width, 10);
+  const target = fishTargetSpeed() * dir;
+  const swimmer = {
+    el: fish, img, dir, margin,
+    x: fishRand(-margin, document.documentElement.clientWidth + margin),
+    v: target * fishRand(0.4, 1),   // começa em qualquer ritmo
+    target,
+  };
+  fishNextRoll.set(fish, performance.now() + fishRand(3, 10) * 1000);
+  return swimmer;
+}
+
+function initAquarium() {
+  const tank = $("#fish-tank");
+  if (!tank) return;
+
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const swimmers = [];
+  for (let i = 0; i < FISH_COUNT; i++) {
+    const s = spawnFish(tank, reduced ? true : Math.random() < 0.28);
+    if (s) swimmers.push(s);
+  }
+  if (reduced || !swimmers.length) return;
+
+  let last = performance.now();
+
+  const step = now => {
+    const dt = Math.min(0.1, (now - last) / 1000);   // dt em segundos (cap p/ abas inertes)
+    last = now;
+    const vw = document.documentElement.clientWidth;
+
+    for (const s of swimmers) {
+      // re-sorteia o alvo de velocidade (e às vezes o rumo), sempre suave
+      if (now > fishNextRoll.get(s.el)) {
+        fishNextRoll.set(s.el, now + fishRand(6, 16) * 1000);
+        if (Math.random() < 0.18) s.dir = -s.dir;
+        s.target = fishTargetSpeed() * s.dir;
+      }
+      s.v += (s.target - s.v) * Math.min(1, dt * 0.25);   // converge devagar até o alvo
+      s.x += s.v * dt;
+
+      // saiu da tela → reaparece do outro lado com topo e rumo novos
+      if (s.x > vw + s.margin || s.x < -s.margin) {
+        s.x = s.x > vw ? -s.margin : vw + s.margin;
+        if (Math.random() < 0.18) s.dir = -s.dir;
+        s.target = fishTargetSpeed() * s.dir;
+        s.el.style.setProperty("--top", fishRand(4, 86).toFixed(1) + "%");
+      }
+      s.el.querySelector(".in").classList.toggle("flip", s.dir === -1);
+      s.el.style.transform = `translate3d(${s.x.toFixed(1)}px, 0, 0)`;
+    }
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 
 /* ================================== boot ================================ */
 (async function boot() {
@@ -1125,7 +1468,9 @@ const Auth = {
   Race.newVector();
   Datasets.refresh();
   Auth.refresh();          // descobre se já há sessão ativa e monta o cabeçalho
-  Professores.load();
+
+  // Popula o aquário aleatório ao fundo
+  initAquarium();
 
   // Contador de visitas estilo 2002 (com dados honestos: nº de execuções
   // registradas no PostgreSQL). O elemento só existe se o rodapé existir.

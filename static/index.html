@@ -5,16 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#000066">
 <title>AlgoViz — Visualizador de Algoritmos</title>
+<<<<<<< HEAD
 <link rel="stylesheet" href="/static/style.css?v=2025">
+=======
+<link rel="stylesheet" href="/static/style.css?v=2020">
+>>>>>>> af6a3dec9eb2e0366b749a63f6aeb50b3332262e
 </head>
 <body>
 <!-- =========================== TELA DE LOGIN =========================== -->
 <div id="login-overlay" class="login-overlay hidden">
   <div class="login-window">
-    <div class="win-title">:: AlgoViz — Acesso ao Sistema ::</div>
+    <div class="win-title">AlgoViz — Acesso ao Sistema</div>
     <div class="login-content">
+<<<<<<< HEAD
       <div class="brand"><h1>:: Algo<span>Viz</span> ::</h1></div>
       <p class="login-desc">Entre com seu usuário e senha para acessar o visualizador de algoritmos.</p>
+=======
+      <div class="brand"><h1>Algo<span>Viz</span></h1></div>
+      <p class="login-desc">Entre com sua conta ou crie um novo registro para acessar o visualizador de algoritmos.</p>
+>>>>>>> af6a3dec9eb2e0366b749a63f6aeb50b3332262e
       <label>Usuário
         <input id="overlay-user" type="text" placeholder="usuário" maxlength="30" autocomplete="username">
       </label>
@@ -29,15 +38,19 @@
 </div>
 
 <header>
-  <div class="brand"><h1>:: Algo<span>Viz</span> ::</h1></div>
+  <div class="brand"><h1>Algo<span>Viz</span></h1></div>
   <nav id="tabs">
-    <button data-tab="sorting" class="active">Ordenação</button>
+    <button data-tab="community" class="active">Comunidade</button>
+    <button data-tab="sorting">Ordenação</button>
     <button data-tab="race">Corrida</button>
     <button data-tab="search">Busca Binária</button>
     <button data-tab="path">Grafos · Caminhos</button>
     <button data-tab="history">Histórico <small>(Postgres)</small></button>
+<<<<<<< HEAD
     <button data-tab="professores">Professores</button>
     <button data-tab="alunos">Alunos</button>
+=======
+>>>>>>> af6a3dec9eb2e0366b749a63f6aeb50b3332262e
   </nav>
   <div id="auth-box" class="auth-box"></div>
 </header>
@@ -47,7 +60,7 @@
 <main>
 
 <!-- ============================ ORDENAÇÃO ============================ -->
-<section id="tab-sorting" class="tab active">
+<section id="tab-sorting" class="tab">
   <aside class="panel controls">
     <h2>Controles</h2>
     <label>Algoritmo
@@ -242,20 +255,18 @@
   </div>
 </section>
 
-<!-- ============================== PROFESSORES =========================== -->
-<section id="tab-professores" class="tab">
-  <div class="panel">
+<!-- ============================== COMUNIDADE ========================== -->
+<section id="tab-community" class="tab active">
+  <div class="panel feed-panel">
     <div class="hist-head">
-      <h2>Cadastro de professores</h2>
-      <button id="btn-prof-novo" class="primary small">＋ Novo professor</button>
+      <button id="feed-back" class="ghost hidden">← Voltar</button>
+      <h2 id="feed-title">Comunidade</h2>
+      <div class="btn-row" id="feed-admin-actions">
+        <button id="btn-post-novo" class="primary small">✍ Nova postagem</button>
+        <button id="btn-admin-painel" class="ghost small">Gerenciar admins</button>
+      </div>
     </div>
-    <table class="tbl">
-      <thead>
-        <tr><th>#</th><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Especialidade</th><th>Ações</th></tr>
-      </thead>
-      <tbody id="tbl-professores"></tbody>
-    </table>
-    <p class="hint">Os professores criam <b>tarefas</b> e marcam <b>agendamentos</b> de aulas da plataforma.</p>
+    <div id="feed-content"></div>
   </div>
 </section>
 
@@ -277,42 +288,34 @@
 </section>
 
 </main>
+<<<<<<< HEAD
 <script src="/static/app.js?v=2025"></script>
 <!-- ===================== MODAL DE CADASTRO DE PROFESSOR ================= -->
 <!-- alterado por leticia 05092026 -->
 <div id="prof-modal" class="login-overlay hidden">
+=======
+
+<!-- ========================== MODAL NOVA POSTAGEM ====================== -->
+<div id="post-modal" class="login-overlay hidden">
+>>>>>>> af6a3dec9eb2e0366b749a63f6aeb50b3332262e
   <div class="login-window">
-    <div class="win-title">:: Cadastro de Professor ::</div>
+    <div class="win-title">:: Nova postagem ::</div>
     <div class="login-content">
-      <label>Nome
-        <input id="prof-nome" type="text" maxlength="120" placeholder="nome completo">
+      <label>Título
+        <input id="post-title" type="text" maxlength="120" placeholder="título do post" style="width:100%">
       </label>
-      <label>E-mail
-        <input id="prof-email" type="text" maxlength="120" placeholder="nome@escola.edu.br">
+      <label>Conteúdo
+        <textarea id="post-body" rows="8" maxlength="5000" placeholder="escreva aqui..."></textarea>
       </label>
-      <label>Telefone
-        <input id="prof-telefone" type="text" maxlength="30" placeholder="(00) 90000-0000">
-      </label>
-      <label>Especialidade
-        <input id="prof-especialidade" type="text" maxlength="80" placeholder="ex.: Matemática">
-      </label>
-
-      <!-- Novos campos de acesso para virar usuário do sistema -->
-      <label>Usuário de Acesso
-        <input id="prof-user" type="text" maxlength="30" placeholder="ex: prof_carlos">
-      </label>
-      <label>Senha Provisória
-        <input id="prof-pass" type="password" maxlength="100" placeholder="mínimo 4 caracteres">
-      </label>
-
       <div class="btn-row">
-        <button id="btn-prof-salvar" class="primary">Salvar ▶</button>
-        <button id="btn-prof-cancelar" class="ghost">Cancelar</button>
+        <button id="btn-post-salvar" class="primary">Publicar ▶</button>
+        <button id="btn-post-cancelar" class="ghost">Cancelar</button>
       </div>
     </div>
   </div>
 </div>
 
+<<<<<<< HEAD
 <!-- ===================== MODAL DE CADASTRO DE ALUNO ==================== -->
 <div id="aluno-modal" class="login-overlay hidden">
   <div class="login-window">
@@ -336,10 +339,45 @@
       <div class="btn-row">
         <button id="btn-aluno-salvar" class="primary">Salvar ▶</button>
         <button id="btn-aluno-cancelar" class="ghost">Cancelar</button>
+=======
+<!-- ========================= MODAL GERENCIAR ADMINS ==================== -->
+<div id="admin-modal" class="login-overlay hidden">
+  <div class="login-window big">
+    <div class="win-title">:: Gerenciar administradores ::</div>
+    <div class="login-content">
+      <h3 class="feed-h3">Criar novo admin</h3>
+      <label>Usuário
+        <input id="adm-user" type="text" maxlength="30" placeholder="ex: admin2">
+      </label>
+      <label>Senha
+        <input id="adm-pass" type="password" maxlength="100" placeholder="mínimo 4 caracteres">
+      </label>
+      <button id="btn-adm-criar" class="primary small">Criar admin ▶</button>
+      <hr>
+      <h3 class="feed-h3">Promover usuário existente</h3>
+      <label>Buscar usuário
+        <input id="adm-search" type="text" maxlength="30" placeholder="digite um nome de usuário...">
+      </label>
+      <div id="adm-results" class="feed-results"></div>
+      <h3 class="feed-h3">Admins atuais</h3>
+      <ul id="adm-list" class="ds-list"></ul>
+      <div class="btn-row">
+        <button id="btn-adm-fechar" class="ghost">Fechar</button>
+>>>>>>> af6a3dec9eb2e0366b749a63f6aeb50b3332262e
       </div>
     </div>
   </div>
 </div>
 
+<<<<<<< HEAD
+=======
+<script src="/static/app.js?v=2015"></script>
+
+<!-- ====================== AQUÁRIO FRUTIGER AERO ===================== -->
+<!-- Peixes decorativos boiando no fundo; ficam atrás do conteúdo e
+     aparecem borrados/vidrados atrás dos painéis de vidro. -->
+<div id="fish-tank" aria-hidden="true"></div>
+
+>>>>>>> af6a3dec9eb2e0366b749a63f6aeb50b3332262e
 </body>
 </html>
