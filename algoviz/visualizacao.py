@@ -13,7 +13,7 @@ from collections import deque
 import psycopg2
 from flask import Blueprint, jsonify, request
 
-from db import current_user, db
+from algoviz.db import current_user, db
 
 viz_bp = Blueprint("visualizacao", __name__)
 

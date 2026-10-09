@@ -11,7 +11,7 @@ import psycopg2
 from flask import Blueprint, jsonify, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from db import current_user, db
+from algoviz.db import current_user, db
 
 auth_bp = Blueprint("auth", __name__)
 

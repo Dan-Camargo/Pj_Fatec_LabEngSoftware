@@ -8,8 +8,8 @@ app.register_blueprint(comunidade_bp).
 
 from flask import Blueprint, jsonify, request
 
-from auth import ApiError, require_admin, require_login
-from db import db
+from algoviz.auth import ApiError, require_admin, require_login
+from algoviz.db import db
 
 comunidade_bp = Blueprint("comunidade", __name__)
 

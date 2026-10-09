@@ -11,10 +11,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from migrate import run_migrations
 
-from auth import ApiError, auth_bp, require_admin, require_login
-from comunidade import comunidade_bp
-from db import DB_CONF, current_user, db
-from visualizacao import viz_bp
+from algoviz.auth import ApiError, auth_bp, require_admin, require_login
+from algoviz.comunidade import comunidade_bp
+from algoviz.db import DB_CONF, current_user, db
+from algoviz.visualizacao import viz_bp
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
