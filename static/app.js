@@ -1119,6 +1119,15 @@ $("#admin-modal").addEventListener("click", e => {
 });
 $("#adm-search").addEventListener("input", () => Feed.searchUsers());
 
+// Delegação de cliques dentro do modal de admins (os botões Promover e
+// Rebaixar moram aqui — #adm-results e #adm-list — e não no #feed-content).
+$("#admin-modal").addEventListener("click", e => {
+  const promote = e.target.closest("[data-promote]");
+  const demote = e.target.closest("[data-demote]");
+  if (promote) return Feed.promote(+promote.dataset.promote);
+  if (demote) return Feed.demote(+demote.dataset.demote);
+});
+
 // Delegação de cliques dentro do conteúdo do feed (lista + detalhe).
 $("#feed-content").addEventListener("click", async e => {
   const like = e.target.closest("[data-like]");
