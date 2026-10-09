@@ -33,11 +33,16 @@
   <div class="brand"><h1>Algo<span>Viz</span></h1></div>
   <nav id="tabs">
     <button data-tab="community" class="active">Comunidade</button>
-    <button data-tab="sorting">Ordenação</button>
-    <button data-tab="race">Corrida</button>
-    <button data-tab="search">Busca Binária</button>
-    <button data-tab="path">Grafos · Caminhos</button>
-    <button data-tab="history">Histórico <small>(Postgres)</small></button>
+    <div class="tab-drop" id="viz-drop">
+      <button id="viz-toggle" aria-haspopup="true" aria-expanded="false">Visualizador ▾</button>
+      <div class="tab-menu hidden" id="viz-menu" role="menu">
+        <button data-tab="sorting" role="menuitem">Ordenação</button>
+        <button data-tab="race" role="menuitem">Corrida</button>
+        <button data-tab="search" role="menuitem">Busca Binária</button>
+        <button data-tab="path" role="menuitem">Grafos · Caminhos</button>
+      </div>
+    </div>
+    <button data-tab="history">Histórico</button>
   </nav>
   <div id="auth-box" class="auth-box"></div>
 </header>
