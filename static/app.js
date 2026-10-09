@@ -75,18 +75,57 @@ function randomArray(n) {
 }
 
 /* ===== 01 · ABAS — troca de data-tab | HTML: #tabs .tab ===== */
-$$("#tabs button").forEach(btn =>
+$$("#tabs button[data-tab]").forEach(btn =>
   btn.addEventListener("click", () => {
-    $$("#tabs button").forEach(b => b.classList.remove("active"));
+    $$("#tabs button[data-tab]").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     $$(".tab").forEach(t => t.classList.remove("active"));
     $("#tab-" + btn.dataset.tab).classList.add("active");
+
+    // Destaca o pai "Visualizador" quando um filho dele está ativo.
+    const vizToggle = $("#viz-toggle");
+    if (vizToggle) vizToggle.classList.toggle("active",
+      ["sorting", "race", "search", "path"].includes(btn.dataset.tab));
+    VizMenu.close();
 
     // Abas que buscam dados sob demanda carregam na primeira abertura
     if (btn.dataset.tab === "history") History.load();
     if (btn.dataset.tab === "community") Feed.load();
   })
 );
+
+/* Dropdown "Visualizador": abre por clique (funciona no mobile); os filhos
+   mantêm data-tab, então o trocador acima continua valendo sem alteração. */
+const VizMenu = {
+  get menu() { return $("#viz-menu"); },
+  get toggle() { return $("#viz-toggle"); },
+  get isOpen() { return this.menu && !this.menu.classList.contains("hidden"); },
+  open() {
+    if (!this.menu) return;
+    this.menu.classList.remove("hidden");
+    if (this.toggle) this.toggle.setAttribute("aria-expanded", "true");
+  },
+  close() {
+    if (!this.menu) return;
+    this.menu.classList.add("hidden");
+    if (this.toggle) this.toggle.setAttribute("aria-expanded", "false");
+  },
+};
+if (typeof document !== "undefined") {
+  document.addEventListener("click", e => {
+    const toggle = e.target.closest && e.target.closest("#viz-toggle");
+    const inside = e.target.closest && e.target.closest("#viz-drop");
+    if (toggle) {
+      if (VizMenu.isOpen) VizMenu.close();
+      else VizMenu.open();
+      return;
+    }
+    if (!inside) VizMenu.close();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") VizMenu.close();
+  });
+}
 
 /* ===== 02 · META — META global + algoCard | API: /api/meta ===== */
 let META = { sorting: [], search: [], path: [] };
@@ -1191,6 +1230,8 @@ const Auth = {
       box.innerHTML = "";
       $("#hist-scope").value = "all";
       $("#hist-scope").classList.add("hidden");
+      const fldUser = $("#overlay-user");
+      if (fldUser) fldUser.focus();
     }
   },
 
@@ -1211,6 +1252,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnRegister = $("#overlay-btn-register");
   if (btnLogin) btnLogin.onclick = () => Auth.submit("/api/login", "Bem-vindo(a) de volta!");
   if (btnRegister) btnRegister.onclick = () => Auth.submit("/api/register", "Conta criada — você já está logado!");
+  // Enter nos dois campos aciona Entrar (criar conta continua só no botão).
+  const enterLogin = e => { if (e.key === "Enter") Auth.submit("/api/login", "Bem-vindo(a) de volta!"); };
+  const fldUser = $("#overlay-user");
+  const fldPass = $("#overlay-pass");
+  if (fldUser) fldUser.addEventListener("keydown", enterLogin);
+  if (fldPass) fldPass.addEventListener("keydown", enterLogin);
 });
 
 /* ===== 11 · AQUÁRIO (decorativo: #fish-tank, sem API) ===== */
