@@ -11,13 +11,19 @@
    - History : aba Histórico (lê o PostgreSQL)
    - Auth    : login/cadastro no cabeçalho
 
+   ÍNDICE (Ctrl+F pelo número):
+   00 base ($, api, toast) · 01 abas · 02 META · 03 motor sort
+   04 SORT #bars · 05 RACE · 06 SEARCH #cells · 07 GRID #grid
+   08 HISTORY · 09 FEED #feed-content · 10 AUTH #auth-box
+   11 AQUÁRIO #fish-tank · 12 BOOT
+
    O back-end não manda "frames prontos": ele devolve a lista de OPERAÇÕES
    executadas pelo algoritmo (comparar i,j / trocar i,j / escrever v em i...).
    O motor aqui embaixo reproduz essas operações na tela — por isso dá para
    pausar, avançar passo a passo e controlar a velocidade.
    ====================================================================== */
 
-/* ============================== utilidades ============================== */
+/* ===== 00 · BASE — $ $$ toast api fmtInt escapeHtml | usado por tudo ===== */
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 
@@ -68,7 +74,7 @@ function randomArray(n) {
   return Array.from({ length: n }, () => 5 + Math.floor(Math.random() * 96));
 }
 
-/* ================================ abas ================================== */
+/* ===== 01 · ABAS — troca de data-tab | HTML: #tabs .tab ===== */
 $$("#tabs button").forEach(btn =>
   btn.addEventListener("click", () => {
     $$("#tabs button").forEach(b => b.classList.remove("active"));
@@ -82,7 +88,7 @@ $$("#tabs button").forEach(btn =>
   })
 );
 
-/* ============================== metadados =============================== */
+/* ===== 02 · META — META global + algoCard | API: /api/meta ===== */
 let META = { sorting: [], search: [], path: [] };
 
 function algoCard(list, id) {
@@ -92,13 +98,7 @@ function algoCard(list, id) {
     <br><small>Melhor <b class="cx">${a.best}</b> · Médio <b class="cx">${a.avg || a.best}</b> · Pior <b class="cx">${a.worst}</b> · Espaço <b class="cx">${a.space}</b></small>`;
 }
 
-/* ========================================================================
-   MOTOR DE ANIMAÇÃO DE ORDENAÇÃO
-   Um "estado" guarda o vetor atual + os elementos DOM das barras.
-   applySortOp() aplica UMA operação recebida do back-end. É compartilhado
-   entre as abas Ordenação e Corrida de propósito: mesma regra visual nos
-   dois lugares.
-   ======================================================================== */
+/* ===== 03 · MOTOR sort (compartilhado Sort/Race: OP_CLASS/newState/applySortOp/repaintBars/buildBars) ===== */
 const OP_CLASS = { c: "cmp", s: "swp", w: "wrt" }; // tipo de op -> classe CSS
 
 function newState(barsEl) {
@@ -169,7 +169,7 @@ function buildBars(container, values) {
   });
 }
 
-/* ============================== ORDENAÇÃO =============================== */
+/* ===== 04 · SORT (aba Ordenação + Datasets) — HTML: #bars #sort-algo #size #speed #ds-* | API: /api/sort /api/runs /api/datasets ===== */
 const Sort = {
   st: newState($("#bars")),
   playing: false, timer: null, savedId: null,
@@ -349,11 +349,10 @@ $("#ds-list").addEventListener("click", async e => {
   }
 });
 
-/* =============================== CORRIDA ================================
-   Dois "lanes" (raias) rodam o MESMO vetor com o MESMO relógio. Como cada
-   algoritmo tem uma lista própria de operações, quem tiver menos operações
-   totais chega primeiro — vitória determinística, sem sorte.
-   ====================================================================== */
+/* ===== 05 · RACE (aba Corrida) — HTML: lanes #race-* | API: /api/sort (2x) /api/runs ===== */
+// Dois "lanes" (raias) rodam o MESMO vetor com o MESMO relógio. Como cada
+// algoritmo tem uma lista própria de operações, quem tiver menos operações
+// totais chega primeiro à vitória determinística, sem sorte.
 const Race = {
   lanes: [], timer: null, playing: false, savedRuns: false,
 
@@ -496,7 +495,7 @@ $("#btn-race-new").addEventListener("click", () => Race.newVector());
 $("#btn-race-run").addEventListener("click", () => Race.run());
 $("#btn-race-pause").addEventListener("click", () => { Race.stop(); });
 
-/* ============================ BUSCA BINÁRIA ============================= */
+/* ===== 06 · SEARCH (aba Busca Binária) — HTML: #cells #search-* | API: /api/search /api/runs ===== */
 const Search = {
   values: [], ops: [], idx: 0, timer: null,
 
@@ -579,7 +578,7 @@ $("#btn-search-gen").addEventListener("click", () => {
 $("#btn-search-target").addEventListener("click", () => Search.pickTarget());
 $("#btn-search-play").addEventListener("click", () => Search.play());
 
-/* =========================== GRAFOS · CAMINHOS ========================== */
+/* ===== 07 · GRID (aba Grafos/Caminhos) — HTML: #grid | API: /api/path /api/runs ===== */
 const Grid = {
   rows: 16, cols: 34,
   walls: new Set(),          // chaves "linha,coluna" das paredes desenhadas
@@ -774,7 +773,7 @@ $("#btn-maze").addEventListener("click", () => { Grid.cleanSolve(); Grid.maze();
 $("#btn-clear-walls").addEventListener("click", () => { Grid.cleanSolve(); Grid.clearWalls(); });
 $("#btn-solve").addEventListener("click", () => Grid.solve());
 
-/* =============================== HISTÓRICO ============================== */
+/* ===== 08 · HISTORY (aba Histórico) — HTML: #tbl-runs #tbl-stats #hist-scope | API: /api/runs /api/stats ===== */
 const History = {
   async postRun(payload) {
     try {
@@ -822,7 +821,7 @@ const History = {
 $("#btn-refresh-hist").addEventListener("click", () => History.load());
 $("#hist-scope").addEventListener("change", () => History.load());
 
-/* ============================== COMUNIDADE =============================
+/* ===== 09 · FEED (aba Comunidade: lista + detalhe + modais post/admin)
    Feed/blog: admins escrevem posts; usuários logados curtem e comentam.
    Três camadas aqui: lista (feed), detalhe do post e o painel de admins
    (modal) para criar/promover/rebaixar administradores.
@@ -1145,7 +1144,7 @@ $("#feed-content").addEventListener("submit", async e => {
   }
 });
 
-/* ============================= AUTENTICAÇÃO =============================
+/* ===== 10 · AUTH (login/cabeçalho) — HTML: #auth-box #overlay-* | API: /api/login /api/register /api/me
    Login simples com cookie de sessão assinado pelo Flask.
    Senhas nunca trafegam de volta: o back-end guarda apenas o hash PBKDF2.
    Logado ou não, TODA funcionalidade continua acessível — o login serve
@@ -1205,7 +1204,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnRegister) btnRegister.onclick = () => Auth.submit("/api/register", "Conta criada — você já está logado!");
 });
 
-/* =========================== AQUÁRIO ALEATÓRIO ========================== */
+/* ===== 11 · AQUÁRIO (decorativo: #fish-tank, sem API) ===== */
 // Peixes decorativos: cada um nasce com posição, tamanho, imagem, direção,
 // velocidade, opacidade e balanço sorteados, então "mergulham" pelo fundo.
 const FISH_SRC = [
@@ -1317,7 +1316,7 @@ function initAquarium() {
   requestAnimationFrame(step);
 }
 
-/* ================================== boot ================================ */
+/* ===== 12 · BOOT (ordem de inicialização — manter por último) ===== */
 (async function boot() {
   try { META = await api("/api/meta"); } catch (e) { toast(e.message, true); }
 
